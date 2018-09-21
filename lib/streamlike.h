@@ -78,6 +78,14 @@ typedef enum sl_seekable_e
 } sl_seekable_t;
 
 /**
+ * Opaque definition for passing checkpoints around callbacks.
+ *
+ * This type will never be defined. Callbacks using pointer of this type should
+ * cast it back and forth between their internal data structure to use it.
+ */
+typedef struct sl_ckp_opaque_t sl_ckp_t;
+
+/**
  * \name Callback Definitions
  *
  * @{
@@ -197,27 +205,90 @@ int (*sl_error_cb_t)(void *context);
 typedef
 sl_off_t (*sl_length_cb_t)(void *context);
 
+/**
+ * Callback type to query seeking capability of a stream.
+ *
+ * \param context Pointer to user-defined stream data.
+ *
+ * \return Enum value denoting seeking capability.
+ */
+typedef
+sl_seekable_t (*sl_seekable_cb_t)(void *context);
+
+/**
+ * Callback type to query checkpoint count in a stream.
+ *
+ * \param context Pointer to user-defined stream data.
+ *
+ * \return Number of checkpoints in the stream. Negative value if not supported.
+ */
+typedef
+int (*sl_ckp_count_cb_t)(void *context);
+
+/**
+ * Callback type to get a checkpoint from its index.
+ *
+ * \param context Pointer to user-defined stream data.
+ * \param idx     Indice of the checkpoint
+ *
+ * \return Pointer to checkpoint. `NULL` if indice is out-of-range or checkpoint
+ *         is not supported.
+ */
+typedef
+const sl_ckp_t* (*sl_ckp_cb_t)(void *context, int idx);
+
+/**
+ * Callback type to get offset of a checkpoint.
+ *
+ * \param context Pointer to user-defined stream data.
+ * \param ckp     Pointer to checkpoint
+ *
+ * \return Offset stored in checkpoint that can be used as `offset` parameter in
+ *         #sl_seek_cb_t().
+ */
+typedef
+sl_off_t (*sl_ckp_offset_cb_t)(void *context, const sl_ckp_t* ckp);
+
+/**
+ * Callback type to get metadata of a checkpoint.
+ *
+ * \param context Pointer to user-defined stream data.
+ * \param ckp     Pointer to checkpoint
+ *
+ * \return Unsigned length of the metadata.
+ */
+typedef
+sl_size_t (*sl_ckp_metadata_cb_t)(void *context, const sl_ckp_t* ckp,
+                                  const void** result);
+
 /** @} */
 
 /**
- * Layout for a stream.
+ * Layout for a stream including all callbacks.
  *
  * This struct abstracts I/O so that it can be customized easily. If a function
- * callback is NULL, it means this operation is not supported. However, the
- * opposite may not be true: If a function is not NULL, it is not guaranteed
+ * callback is `NULL`, it means this operation is not supported. However, the
+ * opposite may not be true: If a function is not `NULL`, it is not guaranteed
  * that the operation is supported.
  */
 typedef struct streamlike_s
 {
     void *context;
-    sl_read_cb_t   read;
-    sl_input_cb_t  input;
-    sl_write_cb_t  write;
-    sl_seek_cb_t   seek;
-    sl_tell_cb_t   tell;
-    sl_eof_cb_t    eof;
-    sl_error_cb_t  error;
-    sl_length_cb_t length;
+    sl_read_cb_t   read;   /**< Read from the stream. */
+    sl_input_cb_t  input;  /**< Read from the stream through output pointer. */
+    sl_write_cb_t  write;  /**< Write to the stream. */
+    sl_seek_cb_t   seek;   /**< Seek to offset in the stream. */
+    sl_tell_cb_t   tell;   /**< Tell current offset of the stream. */
+    sl_eof_cb_t    eof;    /**< Check if end-of-file reached. */
+    sl_error_cb_t  error;  /**< Check if an error happened. */
+    sl_length_cb_t length; /**< Get length of the stream. */
+
+    /* Random access and checkpoint details. */
+    sl_seekable_cb_t  seekable;  /**< Get seeking capability of the stream. */
+    sl_ckp_count_cb_t ckp_count; /**< Get checkpoints count in the stream. */
+    sl_ckp_cb_t       ckp;       /**< Get a checkpoint from the stream. */
+    sl_ckp_offset_cb_t   ckp_offset;   /**< Get offset of the checkpoint. */
+    sl_ckp_metadata_cb_t ckp_metadata; /**< Get metadata of the checkpoint. */
 } streamlike_t;
 
 /**
@@ -328,6 +399,67 @@ inline sl_off_t sl_length(const streamlike_t *stream)
     SL_ASSERT(stream);
     SL_ASSERT(stream->length);
     return stream->length(stream->context);
+}
+
+/**
+ * Wraps seekable callback of a streamlike object.
+ *
+ * \see sl_seekable_cb_t()
+ */
+inline sl_seekable_t sl_seekable(const streamlike_t *stream)
+{
+    SL_ASSERT(stream);
+    SL_ASSERT(stream->seekable);
+    return stream->seekable(stream->context);
+}
+
+/**
+ * Wraps checkpoint count callback of a streamlike object.
+ *
+ * \see sl_ckp_count_cb_t()
+ */
+inline int sl_ckp_count(const streamlike_t *stream)
+{
+    SL_ASSERT(stream);
+    SL_ASSERT(stream->ckp_count);
+    return stream->ckp_count(stream->context);
+}
+
+/**
+ * Wraps checkpoint getter callback of a streamlike object.
+ *
+ * \see sl_ckp_cb_t()
+ */
+inline const sl_ckp_t* sl_ckp(const streamlike_t *stream, int idx)
+{
+    SL_ASSERT(stream);
+    SL_ASSERT(stream->ckp);
+    return stream->ckp(stream->context, idx);
+}
+
+/**
+ * Wraps checkpoint offset callback of a streamlike object.
+ *
+ * \see sl_ckp_offset_cb_t()
+ */
+inline sl_off_t sl_ckp_offset(const streamlike_t *stream, const sl_ckp_t* ckp)
+{
+    SL_ASSERT(stream);
+    SL_ASSERT(stream->ckp_offset);
+    return stream->ckp_offset(stream->context, ckp);
+}
+
+/**
+ * Wraps checkpoint metadata callback of a streamlike object.
+ *
+ * \see sl_ckp_metadata_cb_t()
+ */
+inline sl_size_t sl_ckp_metadata(const streamlike_t *stream,
+                                 const sl_ckp_t* ckp, const void** result)
+{
+    SL_ASSERT(stream);
+    SL_ASSERT(stream->ckp_metadata);
+    return stream->ckp_metadata(stream->context, ckp, result);
 }
 
 /** @} */
