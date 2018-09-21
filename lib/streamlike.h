@@ -8,15 +8,23 @@
 #ifndef STREAMLIKE_H
 #define STREAMLIKE_H
 
+#ifndef SL_ASSERT
+# if defined(SL_DEBUG)
+#  include <assert.h>
 /**
- * Asertion is enabled if `SL_DEBUG` is defined. Standard C library assertion is
- * used when enabled.
+ * Asertion is enabled since `SL_DEBUG` was defined. Standard C library
+ * assertion is used by default. `SL_ASSERT` can be defined by user before
+ * including this header file.
  */
-#if defined(SL_DEBUG)
-# include <assert.h>
-# define SL_ASSERT(x) assert(x)
-#else
-# define SL_ASSERT(x) while(0)
+#  define SL_ASSERT(x) assert(x)
+# else
+/**
+ * Asertion is disabled since `SL_DEBUG` was not defined. Standard C library
+ * assertion is used when enabled. `SL_ASSERT` can be defined by user before
+ * including this header file.
+ */
+#  define SL_ASSERT(x) while(0)
+# endif
 #endif
 
 /* Include related libraries if size_t or off_t is enabled. */
