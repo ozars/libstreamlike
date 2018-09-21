@@ -15,6 +15,11 @@
  * @{
  */
 
+/** Define offsets to be 64-bit. */
+#if !defined(_FILE_OFFSET_BITS) || _FILE_OFFSET_BITS != 64
+#define _FILE_OFFSET_BITS 64
+#endif
+
 #ifndef SL_ASSERT
 # if defined(SL_DEBUG)
 #  include <assert.h>
@@ -34,12 +39,8 @@
 # endif
 #endif
 
-/* Include related libraries if size_t or off_t is enabled. */
-#if defined(SL_USE_SIZE_T) || defined(SL_USE_OFF_T)
-# include <sys/types.h>
-#else
-# include <stdint.h>
-#endif
+/* For off_t and size_t. */
+#include <sys/types.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -66,26 +67,6 @@ extern "C" {
  *
  * @{
  */
-
-/**
- * Defined as `uint64_t` by default. If `SL_USE_SIZE_T` macro is defined, this
- * will be defined as `size_t`.
- */
-#ifdef SL_USE_SIZE_T
-typedef size_t sl_size_t;
-#else
-typedef uint64_t sl_size_t;
-#endif
-
-/**
- * Defined as `int64_t` as default.  If `SL_USE_OFF_T` macro is defined, this
- * will be defined as `size_t`.
- */
-#ifdef SL_USE_OFF_T
-typedef off_t sl_off_t;
-#else
-typedef int64_t sl_off_t;
-#endif
 
 /**
  * Enumeration to denote seekability.
@@ -142,7 +123,7 @@ typedef struct _sl_ckp_opaque_s sl_ckp_t;
  *      sl_write_cb_t()
  */
 typedef
-sl_size_t (*sl_read_cb_t)(void *context, void *buffer, sl_size_t size);
+size_t (*sl_read_cb_t)(void *context, void *buffer, size_t size);
 
 /**
  * Callback type to set input buffers.
@@ -162,7 +143,7 @@ sl_size_t (*sl_read_cb_t)(void *context, void *buffer, sl_size_t size);
  *      sl_write_cb_t(),
  */
 typedef
-sl_size_t (*sl_input_cb_t)(void *context, const void **buffer, sl_size_t size);
+size_t (*sl_input_cb_t)(void *context, const void **buffer, size_t size);
 
 /**
  * Callback type to write to a stream. This function behaves like
@@ -179,7 +160,7 @@ sl_size_t (*sl_input_cb_t)(void *context, const void **buffer, sl_size_t size);
  *      sl_input_cb_t()
  */
 typedef
-sl_size_t (*sl_write_cb_t)(void *context, const void *buffer, sl_size_t size);
+size_t (*sl_write_cb_t)(void *context, const void *buffer, size_t size);
 
 /**
  * Callback type to seek to an offset in a stream. This function
@@ -193,7 +174,7 @@ sl_size_t (*sl_write_cb_t)(void *context, const void *buffer, sl_size_t size);
  * \see sl_seek(), sl_tell_cb_t(), sl_seekable_cb_t()
  */
 typedef
-int (*sl_seek_cb_t)(void *context, sl_off_t offset, int whence);
+int (*sl_seek_cb_t)(void *context, off_t offset, int whence);
 
 /**
  * Callback type to get current offset in a stream.
@@ -205,7 +186,7 @@ int (*sl_seek_cb_t)(void *context, sl_off_t offset, int whence);
  * \see sl_tell(), sl_seek_cb_t(), sl_seekable_cb_t()
  */
 typedef
-sl_off_t (*sl_tell_cb_t)(void *context);
+off_t (*sl_tell_cb_t)(void *context);
 
 /**
  * Callback type to check if end-of-file is reached in a stream.
@@ -247,7 +228,7 @@ int (*sl_error_cb_t)(void *context);
  * \see sl_length()
  */
 typedef
-sl_off_t (*sl_length_cb_t)(void *context);
+off_t (*sl_length_cb_t)(void *context);
 
 /** @} */ // Low-Level Callback Definitions
 
@@ -318,7 +299,7 @@ const sl_ckp_t* (*sl_ckp_cb_t)(void *context, int idx);
  *      sl_ckp_metadata_cb_t()
  */
 typedef
-sl_off_t (*sl_ckp_offset_cb_t)(void *context, const sl_ckp_t* ckp);
+off_t (*sl_ckp_offset_cb_t)(void *context, const sl_ckp_t* ckp);
 
 /**
  * Callback type to get metadata of a checkpoint.
@@ -333,8 +314,8 @@ sl_off_t (*sl_ckp_offset_cb_t)(void *context, const sl_ckp_t* ckp);
  *      sl_ckp_metadata_cb_t()
  */
 typedef
-sl_size_t (*sl_ckp_metadata_cb_t)(void *context, const sl_ckp_t* ckp,
-                                  const void** result);
+size_t (*sl_ckp_metadata_cb_t)(void *context, const sl_ckp_t* ckp,
+                               const void** result);
 
 /** @} */ // High-Level Random-Access Callback Definitions
 /** @} */ // Callbacks
@@ -395,8 +376,7 @@ typedef struct streamlike_s
  *
  * \see sl_read_cb_t()
  */
-inline sl_size_t sl_read(const streamlike_t *stream, void *buffer,
-                         sl_size_t size)
+inline size_t sl_read(const streamlike_t *stream, void *buffer, size_t size)
 {
     SL_ASSERT(stream);
     SL_ASSERT(stream->read);
@@ -408,8 +388,8 @@ inline sl_size_t sl_read(const streamlike_t *stream, void *buffer,
  *
  * \see sl_input_cb_t()
  */
-inline sl_size_t sl_input_t(const streamlike_t *stream, const void **buffer,
-                            sl_size_t size)
+inline size_t sl_input_t(const streamlike_t *stream, const void **buffer,
+                         size_t size)
 {
     SL_ASSERT(stream);
     SL_ASSERT(stream->input);
@@ -421,8 +401,8 @@ inline sl_size_t sl_input_t(const streamlike_t *stream, const void **buffer,
  *
  * \see sl_write_cb_t()
  */
-inline sl_size_t sl_write(const streamlike_t *stream, const void *buffer,
-                          sl_size_t size)
+inline size_t sl_write(const streamlike_t *stream, const void *buffer,
+                       size_t size)
 {
     SL_ASSERT(stream);
     SL_ASSERT(stream->write);
@@ -434,7 +414,7 @@ inline sl_size_t sl_write(const streamlike_t *stream, const void *buffer,
  *
  * \see sl_seek_cb_t()
  */
-inline int sl_seek(const streamlike_t *stream, sl_off_t offset, int whence)
+inline int sl_seek(const streamlike_t *stream, off_t offset, int whence)
 {
     SL_ASSERT(stream);
     SL_ASSERT(stream->seek);
@@ -446,7 +426,7 @@ inline int sl_seek(const streamlike_t *stream, sl_off_t offset, int whence)
  *
  * \see sl_tell_cb_t()
  */
-inline sl_off_t sl_tell(const streamlike_t *stream)
+inline off_t sl_tell(const streamlike_t *stream)
 {
     SL_ASSERT(stream);
     SL_ASSERT(stream->tell);
@@ -482,7 +462,7 @@ inline int sl_error(const streamlike_t *stream)
  *
  * \see sl_length_cb_t()
  */
-inline sl_off_t sl_length(const streamlike_t *stream)
+inline off_t sl_length(const streamlike_t *stream)
 {
     SL_ASSERT(stream);
     SL_ASSERT(stream->length);
@@ -545,7 +525,7 @@ inline const sl_ckp_t* sl_ckp(const streamlike_t *stream, int idx)
  *
  * \see sl_ckp_offset_cb_t()
  */
-inline sl_off_t sl_ckp_offset(const streamlike_t *stream, const sl_ckp_t* ckp)
+inline off_t sl_ckp_offset(const streamlike_t *stream, const sl_ckp_t* ckp)
 {
     SL_ASSERT(stream);
     SL_ASSERT(stream->ckp_offset);
@@ -557,8 +537,8 @@ inline sl_off_t sl_ckp_offset(const streamlike_t *stream, const sl_ckp_t* ckp)
  *
  * \see sl_ckp_metadata_cb_t()
  */
-inline sl_size_t sl_ckp_metadata(const streamlike_t *stream,
-                                 const sl_ckp_t* ckp, const void** result)
+inline size_t sl_ckp_metadata(const streamlike_t *stream,
+                              const sl_ckp_t* ckp, const void** result)
 {
     SL_ASSERT(stream);
     SL_ASSERT(stream->ckp_metadata);

@@ -36,7 +36,6 @@ import ycm_core
 flags = [
     '-x',
     'c',
-    '-DZIDX_DEBUG',
     '-std=c11',
 ]
 
