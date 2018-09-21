@@ -3,10 +3,17 @@
  * Streamlike API header.
  *
  * This library provides an abstract way of accessing to underlying resource
- * stream (file, url etc.).
+ * stream (file, url etc.) along with a high-level random-access signaling
+ * capacity.
  */
 #ifndef STREAMLIKE_H
 #define STREAMLIKE_H
+
+/**
+ * \defgroup MacroDefinitions Library Macros
+ *
+ * @{
+ */
 
 #ifndef SL_ASSERT
 # if defined(SL_DEBUG)
@@ -45,15 +52,23 @@ extern "C" {
  * `SEEK_CUR` and `SEEK_END` defined by the standard C library.
  *
  * \see sl_seek_cb_t()
+ *
  * @{
  */
 #define SL_SEEK_SET (0)
 #define SL_SEEK_CUR (1)
 #define SL_SEEK_END (2)
-/** @} */
+/** @} */ // Seek Whence Definitions
+/** @} */ // MacroDefinitions
 
 /**
- * Defined as uint64_t by default. If `SL_USE_SIZE_T` macro is defined, this
+ * \defgroup DataStructures Library Data Structures
+ *
+ * @{
+ */
+
+/**
+ * Defined as `uint64_t` by default. If `SL_USE_SIZE_T` macro is defined, this
  * will be defined as `size_t`.
  */
 #ifdef SL_USE_SIZE_T
@@ -63,8 +78,8 @@ typedef uint64_t sl_size_t;
 #endif
 
 /**
- * Defined as int64_t as default.  If `SL_USE_OFF_T` macro is defined, this will
- * be defined as `size_t`.
+ * Defined as `int64_t` as default.  If `SL_USE_OFF_T` macro is defined, this
+ * will be defined as `size_t`.
  */
 #ifdef SL_USE_OFF_T
 typedef off_t sl_off_t;
@@ -77,12 +92,15 @@ typedef int64_t sl_off_t;
  */
 typedef enum sl_seekable_e
 {
-    SL_SEEKING_NOT_SUPPORTED = 0, /**< Seeking isn't supported at all. */
-    SL_SEEKING_SUPPORTED = 1,     /**< Seeking is supported completely. */
-    SL_SEEKING_EMULATED = 2,      /**< Seeking is emulated through reading and
-                                    discarding data read. */
-    SL_SEEKING_CHECKPOINTS = 3    /**< Seeking to checkpoints is supported,
-                                    while seeking to other parts is emulated. */
+    SL_SEEKING_NOT_SUPPORTED = 0, /**< Seeking isn't supported at all (Value:
+                                    `0`). */
+    SL_SEEKING_SUPPORTED     = 1, /**< Seeking is supported completely (Value:
+                                    `1`). */
+    SL_SEEKING_EMULATED      = 2, /**< Seeking is emulated through reading and
+                                    discarding data read (Value: `2`). */
+    SL_SEEKING_CHECKPOINTS   = 3  /**< Seeking to checkpoints is supported,
+                                    while seeking to other parts is emulated
+                                    (Value: `3`). */
 } sl_seekable_t;
 
 /**
@@ -91,10 +109,20 @@ typedef enum sl_seekable_e
  * This type will never be defined. Callbacks using pointer of this type should
  * cast it back and forth between their internal data structure to use it.
  */
-typedef struct sl_ckp_opaque_t sl_ckp_t;
+typedef struct _sl_ckp_opaque_s sl_ckp_t;
+
+/** @} */ // DataStructures
 
 /**
- * \name Callback Definitions
+ * \defgroup Callbacks Callback Definitions
+ *
+ * Generic callback interface to access/modify underlying stream.
+ *
+ * @{
+ */
+
+/**
+ * \name Low-level Callback Definitions
  *
  * @{
  */
@@ -105,12 +133,13 @@ typedef struct sl_ckp_opaque_t sl_ckp_t;
  *
  * \param context Pointer to user-defined stream data.
  * \param buffer  Buffer to read into.
- * \param size    Number of bytes to read.
+ * \param size    Unsigned number of bytes to read.
  *
- * \return Number of bytes successfully read. If less than \p size, this means
- *         end-of-file reached or there is some error.
+ * \return Unsigned number of bytes successfully read. If less than \p size,
+ *         this means end-of-file reached or there is some error.
  *
- * \see sl_eof_cb_t(), sl_error_cb_t(), sl_input_cb_t(), sl_write_cb_t()
+ * \see sl_read(), sl_eof_cb_t(), sl_error_cb_t(), sl_input_cb_t(),
+ *      sl_write_cb_t()
  */
 typedef
 sl_size_t (*sl_read_cb_t)(void *context, void *buffer, sl_size_t size);
@@ -124,12 +153,13 @@ sl_size_t (*sl_read_cb_t)(void *context, void *buffer, sl_size_t size);
  *
  * \param context Pointer to user-defined stream data.
  * \param buffer  Pointer to buffer to set.
- * \param size    Number of bytes to read.
+ * \param size    Unsigned number of bytes to read.
  *
- * \return Number of bytes pointed by the buffer. If less than \p size, this
- *         means end-of-file reached or there is some error.
+ * \return Unsigned number of bytes pointed by the buffer. If less than \p size,
+ *         this means end-of-file reached or there is some error.
  *
- * \see sl_eof_cb_t(), sl_error_cb_t(), sl_read_cb_t(), sl_write_cb_t(),
+ * \see sl_input(), sl_eof_cb_t(), sl_error_cb_t(), sl_read_cb_t(),
+ *      sl_write_cb_t(),
  */
 typedef
 sl_size_t (*sl_input_cb_t)(void *context, const void **buffer, sl_size_t size);
@@ -140,9 +170,13 @@ sl_size_t (*sl_input_cb_t)(void *context, const void **buffer, sl_size_t size);
  *
  * \param context Pointer to user-defined stream data.
  * \param buffer  Buffer to write from.
- * \param size    Number of bytes to write.
+ * \param size    Unsigned number of bytes to write.
  *
- * \return Number of bytes successfully written. Less than \p size on error.
+ * \return Unsigned number of bytes successfully written. Less than \p size on
+ *         error.
+ *
+ * \see sl_write(), sl_eof_cb_t(), sl_error_cb_t(), sl_read_cb_t(),
+ *      sl_input_cb_t()
  */
 typedef
 sl_size_t (*sl_write_cb_t)(void *context, const void *buffer, sl_size_t size);
@@ -154,8 +188,9 @@ sl_size_t (*sl_write_cb_t)(void *context, const void *buffer, sl_size_t size);
  * \param offset  Number of bytes relative to the \p whence.
  * \param whence  Position used as reference for the \p offset.
  *
- * \return Zero on success.
- * \return Nonzero otherwise.
+ * \return Zero on success. Nonzero otherwise.
+ *
+ * \see sl_seek(), sl_tell_cb_t(), sl_seekable_cb_t()
  */
 typedef
 int (*sl_seek_cb_t)(void *context, sl_off_t offset, int whence);
@@ -165,8 +200,9 @@ int (*sl_seek_cb_t)(void *context, sl_off_t offset, int whence);
  *
  * \param context Pointer to user-defined stream data.
  *
- * \return Current offset in the stream.
- * \return Negative value on error.
+ * \return Current offset in the stream. Negative value on error.
+ *
+ * \see sl_tell(), sl_seek_cb_t(), sl_seekable_cb_t()
  */
 typedef
 sl_off_t (*sl_tell_cb_t)(void *context);
@@ -177,6 +213,8 @@ sl_off_t (*sl_tell_cb_t)(void *context);
  * \param context Pointer to user-defined stream data.
  *
  * \return Nonzero value if end-of-file is reached.
+ *
+ * \see sl_eof(), sl_error_cb_t(), sl_read_cb_t(), sl_read_input_cb_t()
  */
 typedef
 int (*sl_eof_cb_t)(void *context);
@@ -193,6 +231,8 @@ int (*sl_eof_cb_t)(void *context);
  * \param context Pointer to user-defined stream data.
  *
  * \return Nonzero value if there had been an error in previous read/write call.
+ *
+ * \see sl_error(), sl_eof_cb_t(), sl_read_cb_t(), sl_read_input_cb_t()
  */
 typedef
 int (*sl_error_cb_t)(void *context);
@@ -202,16 +242,28 @@ int (*sl_error_cb_t)(void *context);
  *
  * \param context Pointer to user-defined stream data.
  *
- * \return Length of the stream.
- * \return Negative value on error:
- *         - `-1` is reserved for the case where the stream is continuous.
- *         **Not implemented yet.**
+ * \return Length of the stream. Negative value on error.
  *
- * \todo Implement continuous streams. Either remove dependency to this
- *       function, or make it optional.
+ * \see sl_length()
  */
 typedef
 sl_off_t (*sl_length_cb_t)(void *context);
+
+/** @} */ // Low-Level Callback Definitions
+
+/**
+ * \name High-Level Random-Access Callback Definitions
+ *
+ * Callbacks providing acc to high-level random access capabilities. This
+ * interface allows an application to take advantage of random-access facilities
+ * provided by underlying input stream. It is useful in particular if underlying
+ * input source has some limitations in seeking such as emulated seek or
+ * checkpoint-based seek in the data. Application can optimize seeking requests
+ * with respect to these limitations and feedback received from the input
+ * source.
+ *
+ * @{
+ */
 
 /**
  * Callback type to query seeking capability of a stream.
@@ -219,6 +271,8 @@ sl_off_t (*sl_length_cb_t)(void *context);
  * \param context Pointer to user-defined stream data.
  *
  * \return Enum value denoting seeking capability.
+ *
+ * \see sl_seekable(), sl_seek_cb_t(), sl_ckp_offset_t()
  */
 typedef
 sl_seekable_t (*sl_seekable_cb_t)(void *context);
@@ -229,6 +283,9 @@ sl_seekable_t (*sl_seekable_cb_t)(void *context);
  * \param context Pointer to user-defined stream data.
  *
  * \return Number of checkpoints in the stream. Negative value if not supported.
+ *
+ * \see sl_ckp_count(), sl_seekable_cb_t(), sl_ckp_cb_t(), sl_ckp_offset_cb_t(),
+ *      sl_ckp_metadata_cb_t()
  */
 typedef
 int (*sl_ckp_count_cb_t)(void *context);
@@ -241,6 +298,9 @@ int (*sl_ckp_count_cb_t)(void *context);
  *
  * \return Pointer to checkpoint. `NULL` if indice is out-of-range or checkpoint
  *         is not supported.
+ *
+ * \see sl_ckp(), sl_seekable_cb_t(), sl_ckp_cb_t(), sl_ckp_offset_cb_t(),
+ *      sl_ckp_metadata_cb_t()
  */
 typedef
 const sl_ckp_t* (*sl_ckp_cb_t)(void *context, int idx);
@@ -253,6 +313,9 @@ const sl_ckp_t* (*sl_ckp_cb_t)(void *context, int idx);
  *
  * \return Offset stored in checkpoint that can be used as `offset` parameter in
  *         #sl_seek_cb_t().
+ *
+ * \see sl_ckp_offset(), sl_seekable_cb_t(), sl_ckp_cb_t(), sl_ckp_count_cb_t(),
+ *      sl_ckp_metadata_cb_t()
  */
 typedef
 sl_off_t (*sl_ckp_offset_cb_t)(void *context, const sl_ckp_t* ckp);
@@ -262,16 +325,23 @@ sl_off_t (*sl_ckp_offset_cb_t)(void *context, const sl_ckp_t* ckp);
  *
  * \param context Pointer to user-defined stream data.
  * \param ckp     Pointer to checkpoint
+ * \param result  Output pointer to store the pointer to read-only metadata.
  *
  * \return Unsigned length of the metadata.
+ *
+ * \see sl_ckp_offset(), sl_seekable_cb_t(), sl_ckp_cb_t(), sl_ckp_count_cb_t(),
+ *      sl_ckp_metadata_cb_t()
  */
 typedef
 sl_size_t (*sl_ckp_metadata_cb_t)(void *context, const sl_ckp_t* ckp,
                                   const void** result);
 
-/** @} */
+/** @} */ // High-Level Random-Access Callback Definitions
+/** @} */ // Callbacks
 
 /**
+ * \ingroup DataStructures
+ *
  * Layout for a stream including all callbacks.
  *
  * This struct abstracts I/O so that it can be customized easily. If a function
@@ -281,7 +351,7 @@ sl_size_t (*sl_ckp_metadata_cb_t)(void *context, const sl_ckp_t* ckp,
  */
 typedef struct streamlike_s
 {
-    void *context;
+    void *context;         /**< Stream context to pass around callbacks. */
     sl_read_cb_t   read;   /**< Read from the stream. */
     sl_input_cb_t  input;  /**< Read from the stream through output pointer. */
     sl_write_cb_t  write;  /**< Write to the stream. */
@@ -300,13 +370,22 @@ typedef struct streamlike_s
 } streamlike_t;
 
 /**
- * \name Wrapper Functions
+ * \defgroup WrapperFunctions Wrapper Functions
  *
- * Short hand functions provided for convenience to use streamlike callbacks.
+ * Wrapper functions provided to short hand cumbersome callbacks.
+ *
+ * @{
+ */
+
+/**
+ * \name Low-Level Wrapper Functions
+ *
+ * Short hand functions provided for convenience to use low-level streamlike
+ * callbacks.
  *
  * \note This functions will cause segmentation fault if provided `stream` or
- * the requested capability is NULL. Compiling with `SL_DEBUG` will activate
- * assertions for checking if provided `stream` is NULL.
+ * the requested capability is `NULL`. Compiling with `SL_DEBUG` will activate
+ * necessary assertions. See SL_ASSERT() for details about assertions.
  *
  * @{
  */
@@ -316,7 +395,8 @@ typedef struct streamlike_s
  *
  * \see sl_read_cb_t()
  */
-inline sl_size_t sl_read(const streamlike_t *stream, void *buffer, sl_size_t size)
+inline sl_size_t sl_read(const streamlike_t *stream, void *buffer,
+                         sl_size_t size)
 {
     SL_ASSERT(stream);
     SL_ASSERT(stream->read);
@@ -409,6 +489,21 @@ inline sl_off_t sl_length(const streamlike_t *stream)
     return stream->length(stream->context);
 }
 
+/** @} */ // Low-Level Wrapper Functions
+
+/**
+ * \name High-Level Random-Access Wrapper Functions
+ *
+ * Short hand functions provided for convenience to use high-level random-access
+ * streamlike callbacks.
+ *
+ * \note This functions will cause segmentation fault if provided `stream` or
+ * the requested capability is `NULL`. Compiling with `SL_DEBUG` will activate
+ * necessary assertions.
+ *
+ * @{
+ */
+
 /**
  * Wraps seekable callback of a streamlike object.
  *
@@ -470,7 +565,26 @@ inline sl_size_t sl_ckp_metadata(const streamlike_t *stream,
     return stream->ckp_metadata(stream->context, ckp, result);
 }
 
-/** @} */
+/**
+ * Convenience function to seek to a checkpoint. This function is a short hand
+ * around sl_seek() and sl_ckp_offset(). It requires these callbacks to be
+ * valid (i.e. they should have non-`NULL` values).
+ *
+ * \param stream Streamlike stream.
+ * \param ckp    Checkpoint to seek.
+ *
+ * \return Return value of underlying sl_seek_cb_t() call.
+ */
+inline int sl_seek_to_ckp(const streamlike_t *stream, const sl_ckp_t* ckp)
+{
+    SL_ASSERT(stream);
+    SL_ASSERT(stream->seek);
+    SL_ASSERT(stream->ckp_offset);
+    return sl_seek(stream, sl_ckp_offset(stream, ckp), SL_SEEK_SET);
+}
+
+/** @} */ // High-Level Random-Access Wrapper Functions
+/** @} */ // Wrapper Functions
 
 #ifdef __cplusplus
 } // extern "C"
