@@ -15,11 +15,6 @@
  * @{
  */
 
-/** Define offsets to be 64-bit. */
-#if !defined(_FILE_OFFSET_BITS) || _FILE_OFFSET_BITS != 64
-#define _FILE_OFFSET_BITS 64
-#endif
-
 #ifndef SL_ASSERT
 # if defined(SL_DEBUG)
 #  include <assert.h>

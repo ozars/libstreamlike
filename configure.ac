@@ -35,6 +35,8 @@ AC_FUNC_ERROR_AT_LINE
 AC_FUNC_FSEEKO
 AC_FUNC_MALLOC
 
+AC_SYS_LARGEFILE
+
 AC_CONFIG_FILES([Makefile
                  doc/Makefile
                  lib/Makefile

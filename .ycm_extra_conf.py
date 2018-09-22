@@ -36,7 +36,7 @@ import ycm_core
 flags = [
     '-x',
     'c',
-    '-std=c11',
+    '-std=gnu11',
 ]
 
 

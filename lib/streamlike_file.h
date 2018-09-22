@@ -1,16 +1,6 @@
 #ifndef STREAMLIKE_FILE_H
 #define STREAMLIKE_FILE_H
 
-#if !defined(_FILE_OFFSET_BITS) || _FILE_OFFSET_BITS != 64
-/** Needed for 64-bit `off_t` and `fseeko()`/`ftello()`. */
-#define _FILE_OFFSET_BITS 64
-#endif
-
-#if !defined(_POSIX_C_SOURCE) || _POSIX_C_SOURCE < 1
-/** Needed for posix `fileno()` function. */
-#define _POSIX_C_SOURCE 1
-#endif
-
 #include <stdio.h>
 
 #include "streamlike.h"
