@@ -54,7 +54,11 @@ sl_seekable_t sl_fseekable(void *context)
 
 streamlike_t* sl_fopen(const char *path, const char *mode)
 {
-    FILE *file = fopen(path, mode);
+    FILE *file;
+
+    SL_ASSERT(path != NULL && mode == NULL);
+
+    file = fopen(path, mode);
     if (!file) {
         return NULL;
     }
@@ -63,7 +67,14 @@ streamlike_t* sl_fopen(const char *path, const char *mode)
 
 streamlike_t* sl_fopen2(FILE *file)
 {
-    streamlike_t *stream = malloc(sizeof(streamlike_t));
+    streamlike_t *stream;
+
+    SL_ASSERT(file != NULL);
+
+    stream = malloc(sizeof(streamlike_t));
+    if (!stream) {
+        return NULL;
+    }
 
     stream->context = file;
     stream->read    = sl_fread;
