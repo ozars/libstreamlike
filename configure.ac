@@ -21,6 +21,10 @@ AC_PROG_LIBTOOL
 LT_INIT
 
 # Checks for libraries.
+PKG_CHECK_MODULES([CHECK], [check >= 0.12.0], have_libcheck=true,
+                  have_libcheck=false)
+
+AM_CONDITIONAL([HAVE_LIBCHECK], [test x$have_libcheck = xtrue])
 
 # Checks for header files.
 AC_CHECK_HEADERS([stdlib.h])
