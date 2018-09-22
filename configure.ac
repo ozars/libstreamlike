@@ -21,10 +21,21 @@ AC_PROG_LIBTOOL
 LT_INIT
 
 # Checks for libraries.
+
+# libcheck is required for running tests through make check target. make check
+# will fail if libcheck is not found.
 PKG_CHECK_MODULES([CHECK], [check >= 0.12.0], have_libcheck=true,
                   have_libcheck=false)
-
 AM_CONDITIONAL([HAVE_LIBCHECK], [test x$have_libcheck = xtrue])
+
+# libcurl is required for streamlike_http, which is optional.
+AC_ARG_WITH([streamlike-http],
+    AC_HELP_STRING([--without-streamlike-http],
+                   [Disable streamlike_http functionality]))
+AS_IF([test x$with_streamlike_http != xno],
+    PKG_CHECK_MODULES([CURL], [libcurl], have_libcurl=true, have_libcurl=false)
+    AM_CONDITIONAL([ENABLE_STREAMLIKE_HTTP], [test x$have_libcurl = xtrue]),
+    AM_CONDITIONAL([ENABLE_STREAMLIKE_HTTP], 0))
 
 # Checks for header files.
 AC_CHECK_HEADERS([stdlib.h])
