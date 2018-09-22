@@ -1,0 +1,12 @@
+language: C
+env:
+    global:
+        - TEST_EXT_DIR=test_ext
+sudo: required
+install:
+    - ./travis-install.sh "$TEST_EXT_DIR"
+script:
+    - autoreconf -vfi
+    - ./configure
+    - make
+    - make check
