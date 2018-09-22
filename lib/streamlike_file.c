@@ -15,6 +15,15 @@ size_t sl_fwrite(void *context, const void *buffer, size_t size)
 
 int sl_fseek(void *context, off_t offset, int whence)
 {
+    switch(whence)
+    {
+        case SL_SEEK_SET:
+            return fseeko((FILE*)context, offset, SEEK_SET);
+        case SL_SEEK_CUR:
+            return fseeko((FILE*)context, offset, SEEK_CUR);
+        case SL_SEEK_END:
+            return fseeko((FILE*)context, offset, SEEK_END);
+    }
     return fseeko((FILE*)context, offset, whence);
 }
 
