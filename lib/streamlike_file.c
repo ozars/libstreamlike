@@ -83,3 +83,16 @@ streamlike_t* sl_fopen2(FILE *file)
 
     return stream;
 }
+
+int sl_fclose(streamlike_t *stream)
+{
+    SL_ASSERT(stream != NULL);
+    SL_ASSERT(stream->context != NULL);
+
+    if (fclose((FILE*)stream->context) < 0) {
+        return -1;
+    }
+    free(stream);
+
+    return 0;
+}
