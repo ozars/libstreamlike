@@ -3,64 +3,6 @@
 #include <stdlib.h>
 #include <sys/stat.h>
 
-size_t sl_fread(void *context, void *buffer, size_t size)
-{
-    return fread(buffer, 1, size, (FILE*)context);
-}
-
-size_t sl_fwrite(void *context, const void *buffer, size_t size)
-{
-    return fwrite(buffer, 1, size, (FILE*)context);
-}
-
-int sl_fseek(void *context, off_t offset, int whence)
-{
-    switch(whence)
-    {
-        case SL_SEEK_SET:
-            return fseeko((FILE*)context, offset, SEEK_SET);
-        case SL_SEEK_CUR:
-            return fseeko((FILE*)context, offset, SEEK_CUR);
-        case SL_SEEK_END:
-            return fseeko((FILE*)context, offset, SEEK_END);
-    }
-    return fseeko((FILE*)context, offset, whence);
-}
-
-off_t sl_ftell(void *context)
-{
-    return ftello((FILE*)context);
-}
-
-int sl_feof(void *context)
-{
-    return feof((FILE*)context);
-}
-
-int sl_ferror(void *context)
-{
-    return ferror((FILE*)context);
-}
-
-off_t sl_flength(void *context)
-{
-    struct stat s;
-    int fd = fileno((FILE*)context);
-
-    if (fd < 0) {
-        return -1;
-    }
-    if (fstat(fd, &s) < 0) {
-        return -2;
-    }
-    return s.st_size;
-}
-
-sl_seekable_t sl_fseekable(void *context)
-{
-    return SL_SEEKING_SUPPORTED;
-}
-
 streamlike_t* sl_fopen(const char *path, const char *mode)
 {
     FILE *file;
@@ -86,16 +28,16 @@ streamlike_t* sl_fopen2(FILE *file)
     }
 
     stream->context = file;
-    stream->read    = sl_fread;
+    stream->read    = sl_fread_cb;
     stream->input   = NULL;
-    stream->write   = sl_fwrite;
-    stream->seek    = sl_fseek;
-    stream->tell    = sl_ftell;
-    stream->eof     = sl_feof;
-    stream->error   = sl_ferror;
-    stream->length  = sl_flength;
+    stream->write   = sl_fwrite_cb;
+    stream->seek    = sl_fseek_cb;
+    stream->tell    = sl_ftell_cb;
+    stream->eof     = sl_feof_cb;
+    stream->error   = sl_ferror_cb;
+    stream->length  = sl_flength_cb;
 
-    stream->seekable     = sl_fseekable;
+    stream->seekable     = sl_fseekable_cb;
     stream->ckp_count    = NULL;
     stream->ckp          = NULL;
     stream->ckp_offset   = NULL;
@@ -115,4 +57,62 @@ int sl_fclose(streamlike_t *stream)
     free(stream);
 
     return 0;
+}
+
+size_t sl_fread_cb(void *context, void *buffer, size_t size)
+{
+    return fread(buffer, 1, size, (FILE*)context);
+}
+
+size_t sl_fwrite_cb(void *context, const void *buffer, size_t size)
+{
+    return fwrite(buffer, 1, size, (FILE*)context);
+}
+
+int sl_fseek_cb(void *context, off_t offset, int whence)
+{
+    switch(whence)
+    {
+        case SL_SEEK_SET:
+            return fseeko((FILE*)context, offset, SEEK_SET);
+        case SL_SEEK_CUR:
+            return fseeko((FILE*)context, offset, SEEK_CUR);
+        case SL_SEEK_END:
+            return fseeko((FILE*)context, offset, SEEK_END);
+    }
+    return fseeko((FILE*)context, offset, whence);
+}
+
+off_t sl_ftell_cb(void *context)
+{
+    return ftello((FILE*)context);
+}
+
+int sl_feof_cb(void *context)
+{
+    return feof((FILE*)context);
+}
+
+int sl_ferror_cb(void *context)
+{
+    return ferror((FILE*)context);
+}
+
+off_t sl_flength_cb(void *context)
+{
+    struct stat s;
+    int fd = fileno((FILE*)context);
+
+    if (fd < 0) {
+        return -1;
+    }
+    if (fstat(fd, &s) < 0) {
+        return -2;
+    }
+    return s.st_size;
+}
+
+sl_seekable_t sl_fseekable_cb(void *context)
+{
+    return SL_SEEKING_SUPPORTED;
 }

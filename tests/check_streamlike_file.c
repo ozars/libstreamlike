@@ -13,16 +13,16 @@ void verify_stream_integrity(streamlike_t *stream)
     ck_assert(stream != NULL);
 
     ck_assert(stream->context != NULL);
-    ck_assert(stream->read    == sl_fread);
+    ck_assert(stream->read    == sl_fread_cb);
     ck_assert(stream->input   == NULL);
-    ck_assert(stream->write   == sl_fwrite);
-    ck_assert(stream->seek    == sl_fseek);
-    ck_assert(stream->tell    == sl_ftell);
-    ck_assert(stream->eof     == sl_feof);
-    ck_assert(stream->error   == sl_ferror);
-    ck_assert(stream->length  == sl_flength);
+    ck_assert(stream->write   == sl_fwrite_cb);
+    ck_assert(stream->seek    == sl_fseek_cb);
+    ck_assert(stream->tell    == sl_ftell_cb);
+    ck_assert(stream->eof     == sl_feof_cb);
+    ck_assert(stream->error   == sl_ferror_cb);
+    ck_assert(stream->length  == sl_flength_cb);
 
-    ck_assert(stream->seekable     == sl_fseekable);
+    ck_assert(stream->seekable     == sl_fseekable_cb);
     ck_assert(stream->ckp_count    == NULL);
     ck_assert(stream->ckp          == NULL);
     ck_assert(stream->ckp_offset   == NULL);
