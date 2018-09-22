@@ -16,6 +16,7 @@ void verify_stream_integrity(streamlike_t *stream)
     ck_assert(stream->read    == sl_fread_cb);
     ck_assert(stream->input   == NULL);
     ck_assert(stream->write   == sl_fwrite_cb);
+    ck_assert(stream->flush   == sl_fflush_cb);
     ck_assert(stream->seek    == sl_fseek_cb);
     ck_assert(stream->tell    == sl_ftell_cb);
     ck_assert(stream->eof     == sl_feof_cb);
@@ -87,11 +88,25 @@ START_TEST(test_read_write_seek_length)
     ck_assert(sl_tell(tmp_stream) == 0);
     ck_assert(sl_write(tmp_stream, data, sizeof(data)) == sizeof(data));
     ck_assert(sl_tell(tmp_stream) == sizeof(data));
+    ck_assert(sl_flush(tmp_stream) == 0);
+
+    ck_assert(sl_length(tmp_stream) == sizeof(data));
+
     ck_assert(sl_seek(tmp_stream, 0, SL_SEEK_SET) == 0);
     ck_assert(sl_read(tmp_stream, buf, sizeof(data)) == sizeof(data));
-    ck_assert(sl_tell(tmp_stream) == sizeof(data));
     ck_assert(memcmp(data, buf, sizeof(data)) == 0);
+    ck_assert(sl_tell(tmp_stream) == sizeof(data));
+
     ck_assert(sl_length(tmp_stream) == sizeof(data));
+
+    ck_assert(!sl_eof(tmp_stream));
+    ck_assert(sl_read(tmp_stream, buf, sizeof(data)) == 0);
+    ck_assert(sl_eof(tmp_stream));
+
+    ck_assert(sl_seek(tmp_stream, 0, SL_SEEK_SET) == 0);
+    ck_assert(!sl_eof(tmp_stream));
+
+    ck_assert(sl_seekable(tmp_stream) == SL_SEEKING_SUPPORTED);
 }
 END_TEST
 

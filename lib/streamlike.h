@@ -151,11 +151,23 @@ size_t (*sl_input_cb_t)(void *context, const void **buffer, size_t size);
  * \return Unsigned number of bytes successfully written. Less than \p size on
  *         error.
  *
- * \see sl_write(), sl_eof_cb_t(), sl_error_cb_t(), sl_read_cb_t(),
- *      sl_input_cb_t()
+ * \see sl_write(), sl_flush_cb_t(), sl_eof_cb_t(), sl_error_cb_t(),
+ *      sl_read_cb_t(), sl_input_cb_t()
  */
 typedef
 size_t (*sl_write_cb_t)(void *context, const void *buffer, size_t size);
+
+/**
+ * Callback type to flush remaining written data to stream.
+ *
+ * \param context Pointer to user-defined stream data.
+ *
+ * \return Zero on succes. Negative value on error.
+ *
+ * \see sl_flush(), sl_write_cb_t()
+ */
+typedef
+int (*sl_flush_cb_t)(void *context);
 
 /**
  * Callback type to seek to an offset in a stream. This function
@@ -331,6 +343,7 @@ typedef struct streamlike_s
     sl_read_cb_t   read;   /**< Read from the stream. */
     sl_input_cb_t  input;  /**< Read from the stream through output pointer. */
     sl_write_cb_t  write;  /**< Write to the stream. */
+    sl_flush_cb_t  flush;  /**< Flush to the stream. */
     sl_seek_cb_t   seek;   /**< Seek to offset in the stream. */
     sl_tell_cb_t   tell;   /**< Tell current offset of the stream. */
     sl_eof_cb_t    eof;    /**< Check if end-of-file reached. */
@@ -402,6 +415,18 @@ inline size_t sl_write(const streamlike_t *stream, const void *buffer,
     SL_ASSERT(stream);
     SL_ASSERT(stream->write);
     return stream->write(stream->context, buffer, size);
+}
+
+/**
+ * Wraps flushing callback of a streamlike object.
+ *
+ * \see sl_flush_cb_t()
+ */
+inline int sl_flush(const streamlike_t *stream)
+{
+    SL_ASSERT(stream);
+    SL_ASSERT(stream->flush);
+    return stream->flush(stream->context);
 }
 
 /**

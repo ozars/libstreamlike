@@ -11,6 +11,7 @@ int sl_fclose(streamlike_t *stream);
 
 size_t sl_fread_cb(void *context, void *buffer, size_t size);
 size_t sl_fwrite_cb(void *context, const void *buffer, size_t size);
+int sl_fflush_cb(void *context);
 int sl_fseek_cb(void *context, off_t offset, int whence);
 off_t sl_ftell_cb(void *context);
 int sl_feof_cb(void *context);

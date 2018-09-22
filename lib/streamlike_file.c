@@ -31,6 +31,7 @@ streamlike_t* sl_fopen2(FILE *file)
     stream->read    = sl_fread_cb;
     stream->input   = NULL;
     stream->write   = sl_fwrite_cb;
+    stream->flush   = sl_fflush_cb;
     stream->seek    = sl_fseek_cb;
     stream->tell    = sl_ftell_cb;
     stream->eof     = sl_feof_cb;
@@ -67,6 +68,11 @@ size_t sl_fread_cb(void *context, void *buffer, size_t size)
 size_t sl_fwrite_cb(void *context, const void *buffer, size_t size)
 {
     return fwrite(buffer, 1, size, (FILE*)context);
+}
+
+int sl_fflush_cb(void *context)
+{
+    return fflush((FILE*)context);
 }
 
 int sl_fseek_cb(void *context, off_t offset, int whence)
