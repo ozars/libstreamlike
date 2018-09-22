@@ -1,9 +1,12 @@
 #include <stdlib.h>
+#include <string.h>
 #include <check.h>
 
 #include "streamlike_file.h"
 
-typedef Suite* (*SuiteCreator)();
+#define TEMP_FILE_NAME "test.tmp"
+
+streamlike_t *tmp_stream;
 
 void verify_stream_integrity(streamlike_t *stream)
 {
@@ -28,9 +31,10 @@ void verify_stream_integrity(streamlike_t *stream)
 
 START_TEST(test_create_destroy)
 {
-    streamlike_t* stream = sl_fopen("test.tmp", "wb");
+    streamlike_t* stream = sl_fopen(TEMP_FILE_NAME, "wb");
     verify_stream_integrity(stream);
     ck_assert(sl_fclose(stream) == 0);
+    ck_assert(remove(TEMP_FILE_NAME) == 0);
 }
 END_TEST
 
@@ -39,13 +43,14 @@ START_TEST(test_create_destroy2)
     FILE* fp;
     streamlike_t* stream;
 
-    fp = fopen("test.tmp", "wb");
+    fp = fopen(TEMP_FILE_NAME, "wb");
     ck_assert(fp != NULL);
 
     stream = sl_fopen2(fp);
     verify_stream_integrity(stream);
 
     ck_assert(sl_fclose(stream) == 0);
+    ck_assert(remove(TEMP_FILE_NAME) == 0);
 }
 END_TEST
 
@@ -55,10 +60,46 @@ START_TEST(test_create_destroy_failures)
 }
 END_TEST
 
+void setup_tmp_stream()
+{
+    FILE *tmpf;
+
+    ck_assert(tmp_stream == NULL);
+
+    tmpf = tmpfile();
+    ck_assert(tmpf);
+
+    tmp_stream = sl_fopen2(tmpf);
+    ck_assert(tmp_stream);
+}
+
+void teardown_tmp_stream()
+{
+    ck_assert(sl_fclose(tmp_stream) == 0);
+    tmp_stream = NULL;
+}
+
+START_TEST(test_read_write_seek_length)
+{
+    const char data[] = "\0Test data \0to write\n\r\b\t.\0";
+    char buf[sizeof(data)];
+
+    ck_assert(sl_tell(tmp_stream) == 0);
+    ck_assert(sl_write(tmp_stream, data, sizeof(data)) == sizeof(data));
+    ck_assert(sl_tell(tmp_stream) == sizeof(data));
+    ck_assert(sl_seek(tmp_stream, 0, SL_SEEK_SET) == 0);
+    ck_assert(sl_read(tmp_stream, buf, sizeof(data)) == sizeof(data));
+    ck_assert(sl_tell(tmp_stream) == sizeof(data));
+    ck_assert(memcmp(data, buf, sizeof(data)) == 0);
+    ck_assert(sl_length(tmp_stream) == sizeof(data));
+}
+END_TEST
+
 Suite* streamlike_file_suite()
 {
     Suite *s;
     TCase *tc1;
+    TCase *tc2;
 
     s = suite_create("Streamlike File");
 
@@ -68,6 +109,12 @@ Suite* streamlike_file_suite()
     tcase_add_test(tc1, test_create_destroy2);
     tcase_add_test(tc1, test_create_destroy_failures);
     suite_add_tcase(s, tc1);
+
+    tc2 = tcase_create("Access/Modify");
+    tcase_add_checked_fixture(tc2, setup_tmp_stream, teardown_tmp_stream);
+
+    tcase_add_test(tc2, test_read_write_seek_length);
+    suite_add_tcase(s, tc2);
 
     return s;
 }
