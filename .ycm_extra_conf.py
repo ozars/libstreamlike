@@ -37,6 +37,7 @@ flags = [
     '-x',
     'c',
     '-std=gnu11',
+    '-Ilib'
 ]
 
 
