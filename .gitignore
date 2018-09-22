@@ -84,9 +84,11 @@ autom4te.cache
 /missing
 /stamp-h1
 
-# Autotools Artifacts
+# Other Autotools Artifacts
 *~
 .deps/
 Makefile
 config.h
+.libs/
+/libtool
 
