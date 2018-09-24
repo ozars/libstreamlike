@@ -3,7 +3,7 @@
 
 AC_PREREQ([2.69])
 AC_INIT([libstreamlike], [1.0.0], [omer AT utdallas DOT edu])
-AC_CONFIG_SRCDIR([lib/streamlike.h])
+AC_CONFIG_SRCDIR([src/streamlike.h])
 AC_CONFIG_HEADERS([config.h])
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_MACRO_DIRS([m4])
@@ -54,6 +54,6 @@ AC_SYS_LARGEFILE
 
 AC_CONFIG_FILES([Makefile
                  doc/Makefile
-                 lib/Makefile
+                 src/Makefile
                  tests/Makefile])
 AC_OUTPUT
