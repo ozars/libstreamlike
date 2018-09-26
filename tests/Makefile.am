@@ -1,8 +1,10 @@
-TESTS = check_streamlike_file
+TESTS = check_streamlike_file check_circbuf
 
 AM_CPPFLAGS = -I$(top_srcdir)/src
 
-check_PROGRAMS = check_streamlike_file
+LDADD = ../src/libstreamlike.la @CHECK_LIBS@
+AM_CFLAGS = -std=gnu11 @CHECK_CFLAGS@
+
+check_PROGRAMS = $(TESTS)
 check_streamlike_file_SOURCES = check_streamlike_file.c
-check_streamlike_file_CFLAGS = -std=gnu11 @CHECK_CFLAGS@
-check_streamlike_file_LDADD = ../src/libstreamlike.la @CHECK_LIBS@
+check_circbuf_SOURCES = check_circbuf.c
