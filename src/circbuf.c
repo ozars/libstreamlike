@@ -25,6 +25,10 @@ circbuf_t* circbuf_init(size_t cbuf_size)
     if (cbuf_size == 0) {
         return NULL;
     }
+    /* Increease buffer size by one, since woff can't be equal to roff when
+     * buffer wraps around. (Otherwise it gets harder to track if buffer length
+     * is equal to buffer size or zero.) */
+    cbuf_size++;
     cbuf = malloc(sizeof(circbuf_t_));
     if (!cbuf) {
         return NULL;
@@ -136,11 +140,11 @@ size_t circbuf_read_some_(const void *cbuf_data, size_t cbuf_size,
     }
     memcpy(buf, cbuf_data + *roffp, avail);
     if (woff > buf_len - avail) {
-        memcpy(buf, cbuf_data, buf_len - avail);
+        memcpy(buf + avail, cbuf_data, buf_len - avail);
         *roffp = buf_len - avail;
         return buf_len;
     }
-    memcpy(buf, cbuf_data, woff);
+    memcpy(buf + avail, cbuf_data, woff);
     *roffp = woff;
     return avail + woff;
 }
@@ -192,8 +196,11 @@ size_t circbuf_input_some(const circbuf_t *cbuf_opq, const void **buf,
 {
     const circbuf_t_ *cbuf = (circbuf_t_*)cbuf_opq;
     size_t roff = cbuf->roff;
+    size_t woff = cbuf->woff;
     *buf = cbuf->data + roff;
-    return (cbuf->size - roff > buf_len ? buf_len : cbuf->size - roff);
+    return (woff < roff ?
+             (cbuf->size - roff > buf_len ? buf_len : cbuf->size - roff) :
+             woff - roff);
 }
 
 size_t circbuf_dispose_some(circbuf_t *cbuf_opq, size_t len)
@@ -221,33 +228,41 @@ size_t circbuf_write_some_(void *cbuf_data, size_t cbuf_size,
 {
     size_t avail;
 
+    /* If buffer is full. */
     if (*woffp + 1 == roff || (*woffp == cbuf_size - 1 && roff == 0)) {
         return 0;
     }
+    /* If woff is before roff. */
     if (*woffp < roff) {
-        avail =  roff - *woffp;
+        avail =  roff - *woffp - 1;
+        /* If there is enough data before roff. */
         if (avail >= buf_len) {
             memcpy(cbuf_data + *woffp, buf, buf_len);
             *woffp += buf_len;
             return buf_len;
         }
+        /* Else, use whatever there is. */
         memcpy(cbuf_data + *woffp, buf, avail);
         *woffp += avail;
         return avail;
     }
     avail = cbuf_size - *woffp;
+    /* Else if there is enough data until the end. */
     if (avail >= buf_len) {
         memcpy(cbuf_data + *woffp, buf, buf_len);
         *woffp += buf_len;
         return buf_len;
     }
+    /* Else copy whatever there is until the end. */
     memcpy(cbuf_data + *woffp, buf, avail);
-    if (roff > buf_len - avail + 1) {
-        memcpy(cbuf_data, buf, buf_len - avail);
+    /* Check if there is enough data from beginning up to roff. */
+    if (roff > buf_len - avail) {
+        memcpy(cbuf_data, buf + avail, buf_len - avail);
         *woffp = buf_len - avail;
         return buf_len;
     }
-    memcpy(cbuf_data, buf, roff - 1);
+    /* Else copy whatever there is up to roff. */
+    memcpy(cbuf_data, buf + avail, roff - 1);
     *woffp = roff - 1;
     return avail + roff - 1;
 }
