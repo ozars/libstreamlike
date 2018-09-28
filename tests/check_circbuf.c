@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <check.h>
+#include <pthread.h>
 
 #include "circbuf.c"
 
@@ -66,7 +67,7 @@ size_t data_input_some(size_t len)
 size_t data_write(size_t len)
 {
     size_t written;
-    ck_assert(woffset + len < DATA_SIZE);
+    ck_assert(woffset + len <= DATA_SIZE);
     written = circbuf_write(cbuf, data + woffset, len);
     woffset += written;
     return written;
@@ -257,6 +258,79 @@ START_TEST(test_sequential_input_around)
 }
 END_TEST
 
+void* serial_read(void* argument)
+{
+    int (*continue_callback)() = argument;
+    size_t step;
+    size_t read;
+    while(1)
+    {
+        step = continue_callback();
+        if (!step) {
+            ck_assert(circbuf_close_read(cbuf) == 0);
+            return NULL;
+        }
+        read = data_read(step);
+        ck_assert(read == step || circbuf_is_write_closed(cbuf));
+        ck_assert(verify_read(read));
+    }
+}
+
+void* serial_write(void* argument)
+{
+    int (*continue_callback)() = argument;
+    size_t step;
+    size_t written;
+    while(1)
+    {
+        step = continue_callback();
+        if (!step) {
+            ck_assert(circbuf_close_write(cbuf) == 0);
+            return NULL;
+        }
+        written = data_write(step);
+        ck_assert(written == step || circbuf_is_read_closed(cbuf));
+    }
+}
+
+int normal_reader()
+{
+    int step = BUFFER_SIZE / 10;
+    if (roffset + step <= DATA_SIZE) {
+        return step;
+    }
+    return DATA_SIZE - roffset;
+}
+
+int normal_writer()
+{
+    int step = BUFFER_SIZE / 10;
+    if (woffset + step <= DATA_SIZE) {
+        return step;
+    }
+    return DATA_SIZE - woffset;
+}
+
+START_TEST(test_concurrent_normal)
+{
+    cbuf = circbuf_init(BUFFER_SIZE);
+
+    roffset = 0;
+    woffset = 0;
+
+    pthread_t reader_thread;
+
+    ck_assert(pthread_create(&reader_thread, NULL, serial_read, normal_reader)
+                == 0);
+
+    serial_write(normal_writer);
+
+    ck_assert(pthread_join(reader_thread, NULL) == 0);
+
+    circbuf_destroy(cbuf);
+}
+END_TEST
+
 Suite* circbuf_suite()
 {
     Suite *s;
@@ -264,13 +338,16 @@ Suite* circbuf_suite()
 
     s = suite_create("Circular Buffer");
 
-    tc = tcase_create("Core");
+    tc = tcase_create("Sequential");
     tcase_add_test(tc, test_sequential);
     tcase_add_test(tc, test_sequential_fill);
     tcase_add_test(tc, test_sequential_read_around);
     tcase_add_test(tc, test_sequential_dispose_around);
     tcase_add_test(tc, test_sequential_input_around);
+    suite_add_tcase(s, tc);
 
+    tc = tcase_create("Concurrent");
+    tcase_add_test(tc, test_concurrent_normal);
     suite_add_tcase(s, tc);
 
     return s;
