@@ -312,7 +312,7 @@ size_t circbuf_write(circbuf_t *cbuf_opq, const void *buf, size_t buf_len)
     return written;
 }
 
-int circbuf_conc_close_read(circbuf_t *cbuf_opq)
+int circbuf_close_read(circbuf_t *cbuf_opq)
 {
     circbuf_t_ *cbuf = (circbuf_t_*)cbuf_opq;
 
@@ -328,7 +328,7 @@ int circbuf_conc_close_read(circbuf_t *cbuf_opq)
     return 0;
 }
 
-int circbuf_conc_close_write(circbuf_t *cbuf_opq)
+int circbuf_close_write(circbuf_t *cbuf_opq)
 {
     circbuf_t_ *cbuf = (circbuf_t_*)cbuf_opq;
 
