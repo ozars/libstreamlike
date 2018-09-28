@@ -2,6 +2,7 @@
 #include <string.h>
 #include <check.h>
 #include <pthread.h>
+#include <unistd.h>
 
 #include "circbuf.c"
 
@@ -311,6 +312,18 @@ int normal_writer()
     return DATA_SIZE - woffset;
 }
 
+int slow_reader()
+{
+    usleep(50);
+    return normal_reader();
+}
+
+int slow_writer()
+{
+    usleep(50);
+    return normal_writer();
+}
+
 START_TEST(test_concurrent_normal)
 {
     cbuf = circbuf_init(BUFFER_SIZE);
@@ -324,6 +337,69 @@ START_TEST(test_concurrent_normal)
                 == 0);
 
     serial_write(normal_writer);
+
+    ck_assert(pthread_join(reader_thread, NULL) == 0);
+
+    circbuf_destroy(cbuf);
+}
+END_TEST
+
+START_TEST(test_concurrent_slow_reader)
+{
+
+    cbuf = circbuf_init(BUFFER_SIZE);
+
+    roffset = 0;
+    woffset = 0;
+
+    pthread_t reader_thread;
+
+    ck_assert(pthread_create(&reader_thread, NULL, serial_read, slow_reader)
+                == 0);
+
+    serial_write(normal_writer);
+
+    ck_assert(pthread_join(reader_thread, NULL) == 0);
+
+    circbuf_destroy(cbuf);
+}
+END_TEST
+
+START_TEST(test_concurrent_slow_writer)
+{
+
+    cbuf = circbuf_init(BUFFER_SIZE);
+
+    roffset = 0;
+    woffset = 0;
+
+    pthread_t reader_thread;
+
+    ck_assert(pthread_create(&reader_thread, NULL, serial_read, normal_reader)
+                == 0);
+
+    serial_write(slow_writer);
+
+    ck_assert(pthread_join(reader_thread, NULL) == 0);
+
+    circbuf_destroy(cbuf);
+}
+END_TEST
+
+START_TEST(test_concurrent_slow_both)
+{
+
+    cbuf = circbuf_init(BUFFER_SIZE);
+
+    roffset = 0;
+    woffset = 0;
+
+    pthread_t reader_thread;
+
+    ck_assert(pthread_create(&reader_thread, NULL, serial_read, slow_reader)
+                == 0);
+
+    serial_write(slow_writer);
 
     ck_assert(pthread_join(reader_thread, NULL) == 0);
 
@@ -348,6 +424,9 @@ Suite* circbuf_suite()
 
     tc = tcase_create("Concurrent");
     tcase_add_test(tc, test_concurrent_normal);
+    tcase_add_test(tc, test_concurrent_slow_reader);
+    tcase_add_test(tc, test_concurrent_slow_writer);
+    tcase_add_test(tc, test_concurrent_slow_both);
     suite_add_tcase(s, tc);
 
     return s;
