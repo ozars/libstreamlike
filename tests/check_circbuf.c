@@ -211,6 +211,52 @@ START_TEST(test_sequential_dispose_around)
 }
 END_TEST
 
+START_TEST(test_sequential_input_around)
+{
+    size_t almost_until_end;
+    size_t little_more;
+    size_t some_more;
+    size_t margin;
+    size_t span;
+
+    cbuf = circbuf_init(BUFFER_SIZE);
+    roffset = 0;
+    woffset = 0;
+
+    margin = 5;
+    span = 2;
+    almost_until_end = ((circbuf_t_*)cbuf)->size - margin;
+    little_more = margin - span;
+    some_more = margin + span;
+
+    ck_assert(data_write(almost_until_end) == almost_until_end);
+    ck_assert(data_input_some(almost_until_end) == almost_until_end);
+    ck_assert(verify_input(almost_until_end));
+    ck_assert(data_dispose(almost_until_end) == almost_until_end);
+    ck_assert(data_read_some(almost_until_end) == 0);
+
+    ck_assert(data_write(little_more + some_more) == little_more + some_more);
+    ck_assert(data_input_some(little_more) == little_more);
+    ck_assert(verify_input(little_more));
+    ck_assert(data_dispose(little_more) == little_more);
+
+    ck_assert(data_input_some(some_more) == span);
+    ck_assert(verify_input(span));
+    ck_assert(data_dispose(span) == span);
+
+    ck_assert(data_input_some(some_more - span) == some_more - span);
+    ck_assert(verify_input(some_more - span));
+    ck_assert(data_dispose(some_more - span) == some_more - span);
+    ck_assert(data_read_some(some_more) == 0);
+
+    ck_assert(data_write(little_more) == little_more);
+    ck_assert(data_read(little_more) == little_more);
+    ck_assert(verify_read(little_more));
+
+    circbuf_destroy(cbuf);
+}
+END_TEST
+
 Suite* circbuf_suite()
 {
     Suite *s;
@@ -223,6 +269,7 @@ Suite* circbuf_suite()
     tcase_add_test(tc, test_sequential_fill);
     tcase_add_test(tc, test_sequential_read_around);
     tcase_add_test(tc, test_sequential_dispose_around);
+    tcase_add_test(tc, test_sequential_input_around);
 
     suite_add_tcase(s, tc);
 
