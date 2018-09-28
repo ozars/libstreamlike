@@ -175,18 +175,13 @@ size_t circbuf_read(circbuf_t *cbuf_opq, void *buf, size_t buf_len)
     circbuf_t_ *cbuf = (circbuf_t_*)cbuf_opq;
     size_t read = 0;
 
-    if (cbuf->wdone) {
-        return 0;
-    }
-    while (read < buf_len && !cbuf->wdone) {
+    while (read < buf_len && (cbuf->roff != cbuf->woff || !cbuf->wdone)) {
         pthread_mutex_lock(&cbuf->wlock);
         while (cbuf->roff == cbuf->woff && !cbuf->wdone) {
             pthread_cond_wait(&cbuf->wcond, &cbuf->wlock);
         }
         pthread_mutex_unlock(&cbuf->wlock);
-        if (!cbuf->wdone) {
-            read += circbuf_read_some(cbuf_opq, buf + read, buf_len - read);
-        }
+        read += circbuf_read_some(cbuf_opq, buf + read, buf_len - read);
     }
     return read;
 }
@@ -320,7 +315,7 @@ int circbuf_close_read(circbuf_t *cbuf_opq)
         return -1;
     }
 
-    /* Update cbuf->wdone and signal producer. */
+    /* Update cbuf->rdone and signal producer. */
     pthread_mutex_lock(&cbuf->rlock);
     cbuf->rdone = 1;
     pthread_cond_signal(&cbuf->rcond);
