@@ -195,7 +195,7 @@ size_t circbuf_input_some(const circbuf_t *cbuf_opq, const void **buf,
     *buf = cbuf->data + roff;
     return (woff < roff ?
              (cbuf->size - roff > buf_len ? buf_len : cbuf->size - roff) :
-             woff - roff);
+             (woff - roff > buf_len ? buf_len : woff - roff));
 }
 
 size_t circbuf_dispose_some(circbuf_t *cbuf_opq, size_t len)
@@ -247,6 +247,13 @@ size_t circbuf_write_some_(void *cbuf_data, size_t cbuf_size,
         memcpy(cbuf_data + *woffp, buf, buf_len);
         *woffp += buf_len;
         return buf_len;
+    }
+    /* If read offset is at the beginning, copy whatever there is until the end
+     * except last byte. */
+    if (roff == 0) {
+        memcpy(cbuf_data + *woffp, buf, avail - 1);
+        *woffp += avail - 1;
+        return avail - 1;
     }
     /* Else copy whatever there is until the end. */
     memcpy(cbuf_data + *woffp, buf, avail);
