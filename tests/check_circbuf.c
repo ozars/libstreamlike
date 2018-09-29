@@ -9,6 +9,8 @@
 #define BUFFER_SIZE (1024*1024)
 #define DATA_SIZE (50*BUFFER_SIZE)
 
+#define EARLY_CLOSE_THRESHOLD (DATA_SIZE/3)
+
 char data[DATA_SIZE];
 char buf[BUFFER_SIZE];
 const void *pbuf;
@@ -307,7 +309,7 @@ void* serial_write(void* argument)
     while(1)
     {
         step = continue_callback();
-        if (!step) {
+        if (!step || circbuf_is_read_closed(cbuf)) {
             ck_assert(circbuf_close_write(cbuf) == 0);
             return NULL;
         }
@@ -420,6 +422,26 @@ size_t random_producer_step()
     return normal_producer_step();
 }
 
+size_t early_close_consumer_step()
+{
+    size_t step = normal_consumer_step();
+    size_t threshold = EARLY_CLOSE_THRESHOLD;
+    if (roffset_next + step < threshold) {
+        return step;
+    }
+    return threshold - roffset_next;
+}
+
+size_t early_close_producer_step()
+{
+    size_t step = normal_producer_step();
+    size_t threshold = EARLY_CLOSE_THRESHOLD;
+    if (woffset + step < threshold) {
+        return step;
+    }
+    return threshold - woffset;
+}
+
 #define CONCURRENT_TEST2(tname, consumer_thread_main, producer_thread_main, \
                          consumer_callback, producer_callback, initialize, \
                          bytes_count, ...) \
@@ -465,9 +487,13 @@ CONCURRENT_TEST(test_concurrent_slow_both, serial_read, serial_write,
 CONCURRENT_TEST(test_concurrent_variable_both, serial_read, serial_write,
                 variable_consumer_step, variable_producer_step)
 
-/* Loop test: _i defined by libcheck to denote iteration number. */
-CONCURRENT_TEST(test_concurrent_random_both, serial_read, serial_write,
-                random_consumer_step, random_producer_step, seed_base = 2 * _i)
+CONCURRENT_TEST(test_concurrent_early_consumer_close, serial_read, serial_write,
+                early_close_consumer_step, normal_producer_step, (void)0,
+                EARLY_CLOSE_THRESHOLD)
+
+CONCURRENT_TEST(test_concurrent_early_producer_close, serial_read, serial_write,
+                normal_consumer_step, early_close_producer_step, (void)0,
+                EARLY_CLOSE_THRESHOLD)
 
 CONCURRENT_TEST(test_concurrent_normal_input, serial_input, serial_write,
                 normal_consumer_step, normal_producer_step)
@@ -483,6 +509,18 @@ CONCURRENT_TEST(test_concurrent_slow_both_input, serial_input, serial_write,
 
 CONCURRENT_TEST(test_concurrent_variable_both_input, serial_input, serial_write,
                 variable_consumer_step, variable_producer_step)
+
+CONCURRENT_TEST(test_concurrent_early_consumer_close_input, serial_input,
+                serial_write, early_close_consumer_step, normal_producer_step,
+                (void)0, EARLY_CLOSE_THRESHOLD)
+
+CONCURRENT_TEST(test_concurrent_early_producer_close_input, serial_input,
+                serial_write, normal_consumer_step, early_close_producer_step,
+                (void)0, EARLY_CLOSE_THRESHOLD)
+
+/* Loop test: _i defined by libcheck to denote iteration number. */
+CONCURRENT_TEST(test_concurrent_random_both, serial_read, serial_write,
+                random_consumer_step, random_producer_step, seed_base = 2 * _i)
 
 /* Loop test: _i defined by libcheck to denote iteration number. */
 CONCURRENT_TEST(test_concurrent_random_both_input, serial_input, serial_write,
@@ -509,11 +547,15 @@ Suite* circbuf_suite()
     tcase_add_test(tc, test_concurrent_slow_producer);
     tcase_add_test(tc, test_concurrent_slow_both);
     tcase_add_test(tc, test_concurrent_variable_both);
+    tcase_add_test(tc, test_concurrent_early_consumer_close);
+    tcase_add_test(tc, test_concurrent_early_producer_close);
     tcase_add_test(tc, test_concurrent_normal_input);
     tcase_add_test(tc, test_concurrent_slow_consumer_input);
     tcase_add_test(tc, test_concurrent_slow_producer_input);
     tcase_add_test(tc, test_concurrent_slow_both_input);
     tcase_add_test(tc, test_concurrent_variable_both_input);
+    tcase_add_test(tc, test_concurrent_early_consumer_close_input);
+    tcase_add_test(tc, test_concurrent_early_producer_close_input);
     suite_add_tcase(s, tc);
 
     tc = tcase_create("Fuzzy Concurrent Tests");
