@@ -316,37 +316,37 @@ void* serial_write(void* argument)
     }
 }
 
-int normal_consumer_step()
+size_t normal_consumer_step()
 {
-    int step = BUFFER_SIZE / 10;
+    size_t step = BUFFER_SIZE / 10;
     if (roffset + step <= DATA_SIZE) {
         return step;
     }
     return DATA_SIZE - roffset;
 }
 
-int normal_producer_step()
+size_t normal_producer_step()
 {
-    int step = BUFFER_SIZE / 10;
+    size_t step = BUFFER_SIZE / 10;
     if (woffset + step <= DATA_SIZE) {
         return step;
     }
     return DATA_SIZE - woffset;
 }
 
-int slow_consumer_step()
+size_t slow_consumer_step()
 {
     usleep(50);
     return normal_consumer_step();
 }
 
-int slow_producer_step()
+size_t slow_producer_step()
 {
     usleep(50);
     return normal_producer_step();
 }
 
-int variable_consumer_step()
+size_t variable_consumer_step()
 {
     size_t data_interval = BUFFER_SIZE / 7;
     size_t interval_count = 5;
@@ -371,7 +371,7 @@ int variable_consumer_step()
     return normal_consumer_step();
 }
 
-int variable_producer_step()
+size_t variable_producer_step()
 {
     size_t data_interval = BUFFER_SIZE / 5;
     size_t interval_count = 5;
@@ -396,7 +396,7 @@ int variable_producer_step()
     return normal_producer_step();
 }
 
-int random_consumer_step()
+size_t random_consumer_step()
 {
     static unsigned int current_seed_base = 0;
     static unsigned int seed = 0;
@@ -408,7 +408,7 @@ int random_consumer_step()
     return normal_consumer_step();
 }
 
-int random_producer_step()
+size_t random_producer_step()
 {
     static unsigned int current_seed_base = 1;
     static unsigned int seed = 1;
