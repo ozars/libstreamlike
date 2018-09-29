@@ -420,15 +420,16 @@ size_t random_producer_step()
     return normal_producer_step();
 }
 
-#define CONCURRENT_TEST(tname, consumer_thread_main, producer_thread_main, \
-                        consumer_callback, producer_callback, ...) \
+#define CONCURRENT_TEST2(tname, consumer_thread_main, producer_thread_main, \
+                         consumer_callback, producer_callback, initialize, \
+                         bytes_count, ...) \
     START_TEST(tname) \
     { \
         cbuf = circbuf_init(BUFFER_SIZE); \
         \
         roffset = 0; \
         woffset = 0; \
-        __VA_ARGS__; \
+        (void)(initialize); \
         \
         pthread_t consumer_thread; \
         \
@@ -439,9 +440,15 @@ size_t random_producer_step()
         \
         ck_assert(pthread_join(consumer_thread, NULL) == 0); \
         \
+        if (bytes_count) { \
+            ck_assert(roffset_next == bytes_count); \
+        } else { \
+            ck_assert(roffset_next == DATA_SIZE); \
+        } \
         circbuf_destroy(cbuf); \
     } \
     END_TEST
+#define CONCURRENT_TEST(...) CONCURRENT_TEST2(__VA_ARGS__, 0, 0)
 
 CONCURRENT_TEST(test_concurrent_normal, serial_read, serial_write,
                 normal_consumer_step, normal_producer_step)
