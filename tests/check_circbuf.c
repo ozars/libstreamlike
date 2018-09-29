@@ -316,7 +316,7 @@ void* serial_write(void* argument)
     }
 }
 
-int normal_reader_step()
+int normal_consumer_step()
 {
     int step = BUFFER_SIZE / 10;
     if (roffset + step <= DATA_SIZE) {
@@ -325,7 +325,7 @@ int normal_reader_step()
     return DATA_SIZE - roffset;
 }
 
-int normal_writer_step()
+int normal_producer_step()
 {
     int step = BUFFER_SIZE / 10;
     if (woffset + step <= DATA_SIZE) {
@@ -334,19 +334,19 @@ int normal_writer_step()
     return DATA_SIZE - woffset;
 }
 
-int slow_reader_step()
+int slow_consumer_step()
 {
     usleep(50);
-    return normal_reader_step();
+    return normal_consumer_step();
 }
 
-int slow_writer_step()
+int slow_producer_step()
 {
     usleep(50);
-    return normal_writer_step();
+    return normal_producer_step();
 }
 
-int variable_reader_step()
+int variable_consumer_step()
 {
     size_t data_interval = BUFFER_SIZE / 7;
     size_t interval_count = 5;
@@ -368,10 +368,10 @@ int variable_reader_step()
         case 4:
             break;
     }
-    return normal_reader_step();
+    return normal_consumer_step();
 }
 
-int variable_writer_step()
+int variable_producer_step()
 {
     size_t data_interval = BUFFER_SIZE / 5;
     size_t interval_count = 5;
@@ -393,10 +393,10 @@ int variable_writer_step()
         case 4:
             break;
     }
-    return normal_writer_step();
+    return normal_producer_step();
 }
 
-int random_reader_step()
+int random_consumer_step()
 {
     static unsigned int current_seed_base = 0;
     static unsigned int seed = 0;
@@ -405,10 +405,10 @@ int random_reader_step()
         seed = current_seed_base;
     }
     usleep(rand_r(&seed) % 1000);
-    return normal_reader_step();
+    return normal_consumer_step();
 }
 
-int random_writer_step()
+int random_producer_step()
 {
     static unsigned int current_seed_base = 1;
     static unsigned int seed = 1;
@@ -417,7 +417,7 @@ int random_writer_step()
         seed = current_seed_base;
     }
     usleep(rand_r(&seed) % 1000);
-    return normal_writer_step();
+    return normal_producer_step();
 }
 
 #define CONCURRENT_TEST(tname, consumer_thread_main, producer_thread_main, \
@@ -444,42 +444,42 @@ int random_writer_step()
     END_TEST
 
 CONCURRENT_TEST(test_concurrent_normal, serial_read, serial_write,
-                normal_reader_step, normal_writer_step)
+                normal_consumer_step, normal_producer_step)
 
 CONCURRENT_TEST(test_concurrent_slow_consumer, serial_read, serial_write,
-                slow_reader_step, normal_writer_step)
+                slow_consumer_step, normal_producer_step)
 
 CONCURRENT_TEST(test_concurrent_slow_producer, serial_read, serial_write,
-                normal_reader_step, slow_writer_step)
+                normal_consumer_step, slow_producer_step)
 
 CONCURRENT_TEST(test_concurrent_slow_both, serial_read, serial_write,
-                slow_reader_step, slow_writer_step)
+                slow_consumer_step, slow_producer_step)
 
 CONCURRENT_TEST(test_concurrent_variable_both, serial_read, serial_write,
-                variable_reader_step, variable_writer_step)
+                variable_consumer_step, variable_producer_step)
 
 /* Loop test: _i defined by libcheck to denote iteration number. */
 CONCURRENT_TEST(test_concurrent_random_both, serial_read, serial_write,
-                random_reader_step, random_writer_step, seed_base = 2 * _i)
+                random_consumer_step, random_producer_step, seed_base = 2 * _i)
 
 CONCURRENT_TEST(test_concurrent_normal_input, serial_input, serial_write,
-                normal_reader_step, normal_writer_step)
+                normal_consumer_step, normal_producer_step)
 
 CONCURRENT_TEST(test_concurrent_slow_consumer_input, serial_input, serial_write,
-                slow_reader_step, normal_writer_step)
+                slow_consumer_step, normal_producer_step)
 
 CONCURRENT_TEST(test_concurrent_slow_producer_input, serial_input, serial_write,
-                normal_reader_step, slow_writer_step)
+                normal_consumer_step, slow_producer_step)
 
 CONCURRENT_TEST(test_concurrent_slow_both_input, serial_input, serial_write,
-                slow_reader_step, slow_writer_step)
+                slow_consumer_step, slow_producer_step)
 
 CONCURRENT_TEST(test_concurrent_variable_both_input, serial_input, serial_write,
-                variable_reader_step, variable_writer_step)
+                variable_consumer_step, variable_producer_step)
 
 /* Loop test: _i defined by libcheck to denote iteration number. */
 CONCURRENT_TEST(test_concurrent_random_both_input, serial_input, serial_write,
-                random_reader_step, random_writer_step, seed_base = 2 * _i)
+                random_consumer_step, random_producer_step, seed_base = 2 * _i)
 
 Suite* circbuf_suite()
 {
