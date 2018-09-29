@@ -268,13 +268,34 @@ void* serial_read(void* argument)
     while(1)
     {
         step = continue_callback();
-        if (!step) {
+        if (!step || (circbuf_get_length(cbuf) == 0
+                        && circbuf_is_write_closed(cbuf))) {
             ck_assert(circbuf_close_read(cbuf) == 0);
             return NULL;
         }
         read = data_read(step);
         ck_assert(read == step || circbuf_is_write_closed(cbuf));
         ck_assert(verify_read(read));
+    }
+}
+
+void* serial_input(void* argument)
+{
+    int (*continue_callback)() = argument;
+    size_t step;
+    size_t input;
+    while(1)
+    {
+        step = continue_callback();
+        if (!step || (circbuf_get_length(cbuf) == 0
+                        && circbuf_is_write_closed(cbuf))) {
+            ck_assert(circbuf_close_read(cbuf) == 0);
+            return NULL;
+        }
+        input = data_input_some(step);
+        ck_assert(input <= step);
+        ck_assert(verify_input(input));
+        ck_assert(data_dispose(input) == input);
     }
 }
 
@@ -399,8 +420,8 @@ int random_writer_step()
     return normal_writer_step();
 }
 
-#define CONCURRENT_TEST(tname, reader_thread_main, writer_thread_main, \
-                        reader_callback, writer_callback, ...) \
+#define CONCURRENT_TEST(tname, consumer_thread_main, producer_thread_main, \
+                        consumer_callback, producer_callback, ...) \
     START_TEST(tname) \
     { \
         cbuf = circbuf_init(BUFFER_SIZE); \
@@ -409,14 +430,14 @@ int random_writer_step()
         woffset = 0; \
         __VA_ARGS__; \
         \
-        pthread_t reader_thread; \
+        pthread_t consumer_thread; \
         \
-        ck_assert(pthread_create(&reader_thread, NULL, reader_thread_main, \
-                    reader_callback) == 0); \
+        ck_assert(pthread_create(&consumer_thread, NULL, consumer_thread_main, \
+                    consumer_callback) == 0); \
         \
-        writer_thread_main(writer_callback); \
+        producer_thread_main(producer_callback); \
         \
-        ck_assert(pthread_join(reader_thread, NULL) == 0); \
+        ck_assert(pthread_join(consumer_thread, NULL) == 0); \
         \
         circbuf_destroy(cbuf); \
     } \
@@ -425,10 +446,10 @@ int random_writer_step()
 CONCURRENT_TEST(test_concurrent_normal, serial_read, serial_write,
                 normal_reader_step, normal_writer_step)
 
-CONCURRENT_TEST(test_concurrent_slow_reader, serial_read, serial_write,
+CONCURRENT_TEST(test_concurrent_slow_consumer, serial_read, serial_write,
                 slow_reader_step, normal_writer_step)
 
-CONCURRENT_TEST(test_concurrent_slow_writer, serial_read, serial_write,
+CONCURRENT_TEST(test_concurrent_slow_producer, serial_read, serial_write,
                 normal_reader_step, slow_writer_step)
 
 CONCURRENT_TEST(test_concurrent_slow_both, serial_read, serial_write,
@@ -439,6 +460,25 @@ CONCURRENT_TEST(test_concurrent_variable_both, serial_read, serial_write,
 
 /* Loop test: _i defined by libcheck to denote iteration number. */
 CONCURRENT_TEST(test_concurrent_random_both, serial_read, serial_write,
+                random_reader_step, random_writer_step, seed_base = 2 * _i)
+
+CONCURRENT_TEST(test_concurrent_normal_input, serial_input, serial_write,
+                normal_reader_step, normal_writer_step)
+
+CONCURRENT_TEST(test_concurrent_slow_consumer_input, serial_input, serial_write,
+                slow_reader_step, normal_writer_step)
+
+CONCURRENT_TEST(test_concurrent_slow_producer_input, serial_input, serial_write,
+                normal_reader_step, slow_writer_step)
+
+CONCURRENT_TEST(test_concurrent_slow_both_input, serial_input, serial_write,
+                slow_reader_step, slow_writer_step)
+
+CONCURRENT_TEST(test_concurrent_variable_both_input, serial_input, serial_write,
+                variable_reader_step, variable_writer_step)
+
+/* Loop test: _i defined by libcheck to denote iteration number. */
+CONCURRENT_TEST(test_concurrent_random_both_input, serial_input, serial_write,
                 random_reader_step, random_writer_step, seed_base = 2 * _i)
 
 Suite* circbuf_suite()
@@ -458,11 +498,20 @@ Suite* circbuf_suite()
 
     tc = tcase_create("Concurrent Tests");
     tcase_add_test(tc, test_concurrent_normal);
-    tcase_add_test(tc, test_concurrent_slow_reader);
-    tcase_add_test(tc, test_concurrent_slow_writer);
+    tcase_add_test(tc, test_concurrent_slow_consumer);
+    tcase_add_test(tc, test_concurrent_slow_producer);
     tcase_add_test(tc, test_concurrent_slow_both);
     tcase_add_test(tc, test_concurrent_variable_both);
+    tcase_add_test(tc, test_concurrent_normal_input);
+    tcase_add_test(tc, test_concurrent_slow_consumer_input);
+    tcase_add_test(tc, test_concurrent_slow_producer_input);
+    tcase_add_test(tc, test_concurrent_slow_both_input);
+    tcase_add_test(tc, test_concurrent_variable_both_input);
+    suite_add_tcase(s, tc);
+
+    tc = tcase_create("Fuzzy Concurrent Tests");
     tcase_add_loop_test(tc, test_concurrent_random_both, 0, 100);
+    tcase_add_loop_test(tc, test_concurrent_random_both_input, 0, 100);
     suite_add_tcase(s, tc);
 
     return s;
