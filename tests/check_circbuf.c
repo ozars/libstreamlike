@@ -4,7 +4,7 @@
 #include <pthread.h>
 #include <unistd.h>
 
-#include "circbuf.c"
+#include "circbuf.h"
 
 #define BUFFER_SIZE (1024*1024)
 #define DATA_SIZE (50*BUFFER_SIZE)
@@ -144,7 +144,7 @@ START_TEST(test_sequential_fill)
     roffset = 0;
     woffset = 0;
 
-    whole_buffer_size = ((circbuf_t_*)cbuf)->size;
+    whole_buffer_size = circbuf_get_size(cbuf);
 
     ck_assert(data_write(whole_buffer_size) == whole_buffer_size);
     ck_assert(data_read(whole_buffer_size) == whole_buffer_size);
@@ -165,7 +165,7 @@ START_TEST(test_sequential_read_around)
     roffset = 0;
     woffset = 0;
 
-    almost_until_end = ((circbuf_t_*)cbuf)->size - 5;
+    almost_until_end = circbuf_get_size(cbuf) - 5;
     little_more = 3;
     some_more = 7;
 
@@ -195,7 +195,7 @@ START_TEST(test_sequential_dispose_around)
     roffset = 0;
     woffset = 0;
 
-    almost_until_end = ((circbuf_t_*)cbuf)->size - 5;
+    almost_until_end = circbuf_get_size(cbuf) - 5;
     little_more = 3;
     some_more = 7;
 
@@ -230,7 +230,7 @@ START_TEST(test_sequential_input_around)
 
     margin = 5;
     span = 2;
-    almost_until_end = ((circbuf_t_*)cbuf)->size - margin;
+    almost_until_end = circbuf_get_size(cbuf) - margin;
     little_more = margin - span;
     some_more = margin + span;
 
