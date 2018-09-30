@@ -243,7 +243,7 @@ size_t circbuf_write_some_(void *cbuf_data, size_t cbuf_size,
     }
     avail = cbuf_size - *woffp;
     /* Else if there is enough data until the end. */
-    if (avail >= buf_len) {
+    if (avail > buf_len) {
         memcpy(cbuf_data + *woffp, buf, buf_len);
         *woffp += buf_len;
         return buf_len;

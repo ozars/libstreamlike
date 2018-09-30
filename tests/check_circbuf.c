@@ -153,7 +153,7 @@ END_TEST
 
 START_TEST(test_sequential_fill)
 {
-    size_t whole_buffer_size = circbuf_get_size(cbuf);
+    size_t whole_buffer_size = BUFFER_SIZE;
 
     ck_assert(data_write(whole_buffer_size) == whole_buffer_size);
     ck_assert(data_read(whole_buffer_size) == whole_buffer_size);
