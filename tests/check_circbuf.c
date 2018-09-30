@@ -12,12 +12,12 @@
 #define EARLY_CLOSE_THRESHOLD (DATA_SIZE/3)
 
 char data[DATA_SIZE];
-char buf[BUFFER_SIZE];
+char *buf;
 const void *pbuf;
 circbuf_t *cbuf;
-int roffset;
-int roffset_next;
-int woffset;
+size_t roffset;
+size_t roffset_next;
+size_t woffset;
 unsigned int seed_base;
 
 int verify_read(size_t len)
@@ -25,7 +25,7 @@ int verify_read(size_t len)
     if(!memcmp(buf, data + roffset, len)) {
         return 1;
     }
-    int i;
+    size_t i;
     for (i = 0; i < len; i++)
     {
         if (buf[i] != data[roffset + i]) {
@@ -85,7 +85,7 @@ size_t data_dispose(size_t len)
     return disposed;
 }
 
-void fill_random_data()
+void setup_random_data()
 {
     int i;
     srand(0);
@@ -94,12 +94,27 @@ void fill_random_data()
     }
 }
 
-START_TEST(test_sequential)
+void setup_global()
 {
     cbuf = circbuf_init(BUFFER_SIZE);
-    roffset = 0;
-    woffset = 0;
+    ck_assert(cbuf);
 
+    buf = malloc(circbuf_get_size(cbuf));
+    ck_assert(cbuf);
+
+    roffset = 0;
+    roffset_next = 0;
+    woffset = 0;
+}
+
+void teardown_global()
+{
+    circbuf_destroy(cbuf);
+    free(buf);
+}
+
+START_TEST(test_sequential)
+{
     ck_assert(data_write(50) == 50);
     ck_assert(data_read(50) == 50);
     ck_assert(verify_read(50));
@@ -132,26 +147,17 @@ START_TEST(test_sequential)
     ck_assert(data_read_some(60) == 50);
     ck_assert(verify_read(50));
     ck_assert(data_read_some(60) == 0);
-
-    circbuf_destroy(cbuf);
 }
 END_TEST
 
 START_TEST(test_sequential_fill)
 {
-    size_t whole_buffer_size;
-    cbuf = circbuf_init(BUFFER_SIZE);
-    roffset = 0;
-    woffset = 0;
-
-    whole_buffer_size = circbuf_get_size(cbuf);
+    size_t whole_buffer_size = circbuf_get_size(cbuf);
 
     ck_assert(data_write(whole_buffer_size) == whole_buffer_size);
     ck_assert(data_read(whole_buffer_size) == whole_buffer_size);
     ck_assert(verify_read(whole_buffer_size));
     ck_assert(data_read_some(whole_buffer_size) == 0);
-
-    circbuf_destroy(cbuf);
 }
 END_TEST
 
@@ -160,10 +166,6 @@ START_TEST(test_sequential_read_around)
     size_t almost_until_end;
     size_t little_more;
     size_t some_more;
-
-    cbuf = circbuf_init(BUFFER_SIZE);
-    roffset = 0;
-    woffset = 0;
 
     almost_until_end = circbuf_get_size(cbuf) - 5;
     little_more = 3;
@@ -180,8 +182,6 @@ START_TEST(test_sequential_read_around)
     ck_assert(data_read(some_more) == some_more);
     ck_assert(verify_read(some_more));
     ck_assert(data_read_some(some_more) == 0);
-
-    circbuf_destroy(cbuf);
 }
 END_TEST
 
@@ -190,10 +190,6 @@ START_TEST(test_sequential_dispose_around)
     size_t almost_until_end;
     size_t little_more;
     size_t some_more;
-
-    cbuf = circbuf_init(BUFFER_SIZE);
-    roffset = 0;
-    woffset = 0;
 
     almost_until_end = circbuf_get_size(cbuf) - 5;
     little_more = 3;
@@ -211,8 +207,6 @@ START_TEST(test_sequential_dispose_around)
     ck_assert(data_write(little_more) == little_more);
     ck_assert(data_read(little_more) == little_more);
     ck_assert(verify_read(little_more));
-
-    circbuf_destroy(cbuf);
 }
 END_TEST
 
@@ -223,10 +217,6 @@ START_TEST(test_sequential_input_around)
     size_t some_more;
     size_t margin;
     size_t span;
-
-    cbuf = circbuf_init(BUFFER_SIZE);
-    roffset = 0;
-    woffset = 0;
 
     margin = 5;
     span = 2;
@@ -257,8 +247,6 @@ START_TEST(test_sequential_input_around)
     ck_assert(data_write(little_more) == little_more);
     ck_assert(data_read(little_more) == little_more);
     ck_assert(verify_read(little_more));
-
-    circbuf_destroy(cbuf);
 }
 END_TEST
 
@@ -447,10 +435,6 @@ size_t early_close_producer_step()
                          bytes_count, ...) \
     START_TEST(tname) \
     { \
-        cbuf = circbuf_init(BUFFER_SIZE); \
-        \
-        roffset = 0; \
-        woffset = 0; \
         (void)(initialize); \
         \
         pthread_t consumer_thread; \
@@ -467,7 +451,6 @@ size_t early_close_producer_step()
         } else { \
             ck_assert(roffset_next == DATA_SIZE); \
         } \
-        circbuf_destroy(cbuf); \
     } \
     END_TEST
 #define CONCURRENT_TEST(...) CONCURRENT_TEST2(__VA_ARGS__, 0, 0)
@@ -531,9 +514,12 @@ Suite* circbuf_suite()
     Suite *s;
     TCase *tc;
 
+    setup_random_data();
+
     s = suite_create("Circular Buffer");
 
     tc = tcase_create("Sequential Tests");
+    tcase_add_checked_fixture(tc, setup_global, teardown_global);
     tcase_add_test(tc, test_sequential);
     tcase_add_test(tc, test_sequential_fill);
     tcase_add_test(tc, test_sequential_read_around);
@@ -542,6 +528,7 @@ Suite* circbuf_suite()
     suite_add_tcase(s, tc);
 
     tc = tcase_create("Concurrent Tests");
+    tcase_add_checked_fixture(tc, setup_global, teardown_global);
     tcase_add_test(tc, test_concurrent_normal);
     tcase_add_test(tc, test_concurrent_slow_consumer);
     tcase_add_test(tc, test_concurrent_slow_producer);
@@ -559,6 +546,7 @@ Suite* circbuf_suite()
     suite_add_tcase(s, tc);
 
     tc = tcase_create("Fuzzy Concurrent Tests");
+    tcase_add_checked_fixture(tc, setup_global, teardown_global);
     tcase_add_loop_test(tc, test_concurrent_random_both, 0, 100);
     tcase_add_loop_test(tc, test_concurrent_random_both_input, 0, 100);
     suite_add_tcase(s, tc);
@@ -570,8 +558,6 @@ int main(int argc, char **argv)
 {
     SRunner *sr;
     int num_failed;
-
-    fill_random_data();
 
     sr = srunner_create(circbuf_suite());
 
