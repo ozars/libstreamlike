@@ -10,6 +10,7 @@
 #define DATA_SIZE (50*BUFFER_SIZE)
 
 #define EARLY_CLOSE_THRESHOLD (DATA_SIZE/3)
+#define SLOW_CONCURRENT_TEST_TIMEOUT (15)
 
 char data[DATA_SIZE];
 char *buf;
@@ -530,19 +531,24 @@ Suite* circbuf_suite()
     tc = tcase_create("Concurrent Tests");
     tcase_add_checked_fixture(tc, setup_global, teardown_global);
     tcase_add_test(tc, test_concurrent_normal);
-    tcase_add_test(tc, test_concurrent_slow_consumer);
-    tcase_add_test(tc, test_concurrent_slow_producer);
-    tcase_add_test(tc, test_concurrent_slow_both);
-    tcase_add_test(tc, test_concurrent_variable_both);
-    tcase_add_test(tc, test_concurrent_early_consumer_close);
-    tcase_add_test(tc, test_concurrent_early_producer_close);
     tcase_add_test(tc, test_concurrent_normal_input);
-    tcase_add_test(tc, test_concurrent_slow_consumer_input);
-    tcase_add_test(tc, test_concurrent_slow_producer_input);
-    tcase_add_test(tc, test_concurrent_slow_both_input);
-    tcase_add_test(tc, test_concurrent_variable_both_input);
+    tcase_add_test(tc, test_concurrent_early_consumer_close);
     tcase_add_test(tc, test_concurrent_early_consumer_close_input);
+    tcase_add_test(tc, test_concurrent_early_producer_close);
     tcase_add_test(tc, test_concurrent_early_producer_close_input);
+    suite_add_tcase(s, tc);
+
+    tc = tcase_create("Slow Concurrent Tests");
+    tcase_set_timeout(tc, SLOW_CONCURRENT_TEST_TIMEOUT);
+    tcase_add_checked_fixture(tc, setup_global, teardown_global);
+    tcase_add_test(tc, test_concurrent_slow_consumer);
+    tcase_add_test(tc, test_concurrent_slow_consumer_input);
+    tcase_add_test(tc, test_concurrent_slow_producer);
+    tcase_add_test(tc, test_concurrent_slow_producer_input);
+    tcase_add_test(tc, test_concurrent_slow_both);
+    tcase_add_test(tc, test_concurrent_slow_both_input);
+    tcase_add_test(tc, test_concurrent_variable_both);
+    tcase_add_test(tc, test_concurrent_variable_both_input);
     suite_add_tcase(s, tc);
 
     tc = tcase_create("Fuzzy Concurrent Tests");
