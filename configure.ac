@@ -3,6 +3,7 @@
 
 AC_PREREQ([2.69])
 AC_INIT([libstreamlike], [1.0.0], [omer AT utdallas DOT edu])
+AC_LANG([C])
 AC_CONFIG_SRCDIR([src/streamlike.h])
 AC_CONFIG_HEADERS([config.h])
 AC_CONFIG_AUX_DIR([build-aux])
@@ -20,22 +21,33 @@ AC_PROG_LIBTOOL
 # Initialize libtool to build .la files
 LT_INIT
 
-# Checks for libraries.
+# Checks for libraries and arguments
+
+AC_ARG_ENABLE([debug], AC_HELP_STRING([--enable-debug], [enable debug flag]))
+AM_CONDITIONAL([ENABLE_DEBUG], [test x$enable_debug = xyes])
+AS_IF([test x$enable_debug = xyes], [
+        AC_SUBST([STREAMLIKE_CPPFLAGS], ["-DSTREAMLIKE_DEBUG"])
+    ], [
+        AC_SUBST([STREAMLIKE_CPPFLAGS], [""])
+    ]
+)
 
 # libcheck is required for running tests through make check target. make check
 # will fail if libcheck is not found.
-PKG_CHECK_MODULES([CHECK], [check >= 0.12.0], have_libcheck=true,
-                  have_libcheck=false)
-AM_CONDITIONAL([HAVE_LIBCHECK], [test x$have_libcheck = xtrue])
+AC_ARG_ENABLE([tests], AC_HELP_STRING([--enable-tests], [compile tests]))
+AM_CONDITIONAL([ENABLE_TESTS], [test x$enable_tests = xyes])
+AS_IF([test x$enable_tests = xyes], [
+    PKG_CHECK_MODULES([CHECK], [check >= 0.12.0])
+])
 
 # libcurl is required for streamlike_http, which is optional.
-AC_ARG_WITH([streamlike-http],
-    AC_HELP_STRING([--without-streamlike-http],
-                   [Disable streamlike_http functionality]))
-AS_IF([test x$with_streamlike_http != xno],
-    PKG_CHECK_MODULES([CURL], [libcurl], have_libcurl=true, have_libcurl=false)
-    AM_CONDITIONAL([ENABLE_STREAMLIKE_HTTP], [test x$have_libcurl = xtrue]),
-    AM_CONDITIONAL([ENABLE_STREAMLIKE_HTTP], 0))
+AC_ARG_ENABLE([http], AC_HELP_STRING([--disable-http],
+              [disable streamlike_http functionality]))
+AM_CONDITIONAL([ENABLE_HTTP], [test x$enable_http = xyes])
+AS_IF([test x$enable_http = xyes], [
+    PKG_CHECK_MODULES([CURL], [libcurl >= 7.47.0])
+])
+
 
 # Checks for header files.
 AC_CHECK_HEADERS([stdlib.h])
