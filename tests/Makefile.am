@@ -1,9 +1,9 @@
 if ENABLE_TESTS
 
 if ENABLE_HTTP
-HTTP_TEST = check_streamlike_http
+HTTP_TEST    = check_streamlike_http
 HTTP_SOURCES = check_streamlike_http.c
-HTTP_LIBS = -lcurl
+HTTP_LIBS    = -lcurl
 else
 HTTP_TEST =
 HTTP_LIBS =
