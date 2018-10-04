@@ -1,6 +1,7 @@
 #!/bin/sh -ex
 
 LIBCHECK_TAG=0.12.0
+LIBMICROHTTPD_TAG=v0.9.59
 
 if [ -z "$TEST_EXT_DIR" ]; then
     if [ -n "$1" ]; then
@@ -24,9 +25,17 @@ sudo apt-get install -y autoconf texinfo
 mkdir "$TEST_EXT_DIR" || true
 cd "$TEST_EXT_DIR"
 git clone --branch "$LIBCHECK_TAG" https://github.com/libcheck/check
+git clone --branch "$LIBMICROHTTPD_TAG" https://gnunet.org/git/libmicrohttpd.git
 
 # Install check
 cd "$TEST_EXT_DIR/check"
+autoreconf -vfi
+./configure
+make
+sudo make install
+
+# Install libmicrohttpd
+cd "$TEST_EXT_DIR/libmicrohttpd"
 autoreconf -vfi
 ./configure
 make

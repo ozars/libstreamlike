@@ -25,29 +25,30 @@ LT_INIT
 
 AC_ARG_ENABLE([debug], AC_HELP_STRING([--enable-debug], [enable debug flag]))
 AM_CONDITIONAL([ENABLE_DEBUG], [test x$enable_debug = xyes])
-AS_IF([test x$enable_debug = xyes], [
-        AC_SUBST([STREAMLIKE_CPPFLAGS], ["-DSTREAMLIKE_DEBUG"])
-    ], [
-        AC_SUBST([STREAMLIKE_CPPFLAGS], [""])
-    ]
-)
 
-# libcheck is required for running tests through make check target. make check
-# will fail if libcheck is not found.
 AC_ARG_ENABLE([tests], AC_HELP_STRING([--enable-tests], [compile tests]))
 AM_CONDITIONAL([ENABLE_TESTS], [test x$enable_tests = xyes])
-AS_IF([test x$enable_tests = xyes], [
-    PKG_CHECK_MODULES([CHECK], [check >= 0.12.0])
-])
 
-# libcurl is required for streamlike_http, which is optional.
 AC_ARG_ENABLE([http], AC_HELP_STRING([--disable-http],
               [disable streamlike_http functionality]))
 AM_CONDITIONAL([ENABLE_HTTP], [test x$enable_http = xyes])
-AS_IF([test x$enable_http = xyes], [
-    PKG_CHECK_MODULES([CURL], [libcurl >= 7.47.0])
+
+AM_COND_IF([ENABLE_DEBUG], [
+    AC_SUBST([STREAMLIKE_CPPFLAGS], ["-DSTREAMLIKE_DEBUG"])
+], [
+    AC_SUBST([STREAMLIKE_CPPFLAGS], [""])
 ])
 
+AM_COND_IF([ENABLE_TESTS], [
+    PKG_CHECK_MODULES([CHECK], [check >= 0.12.0])
+    AM_COND_IF([ENABLE_HTTP], [
+        PKG_CHECK_MODULES([LIBMICROHTTPD], [libmicrohttpd >= 0.9.44])
+    ])
+])
+
+AM_COND_IF([ENABLE_HTTP], [
+    PKG_CHECK_MODULES([CURL], [libcurl >= 7.47.0])
+])
 
 # Checks for header files.
 AC_CHECK_HEADERS([stdlib.h])
