@@ -8,6 +8,6 @@ install:
     - ./travis-install.sh "$TEST_EXT_DIR"
 script:
     - autoreconf -vfi
-    - ./configure
+    - ./configure --enable-tests --enable-http --disable-debug
     - make
     - make check
