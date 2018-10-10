@@ -5,10 +5,13 @@ doc/doxygen:
 	make -C doc doxygen
 
 if !ENABLE_TESTS
+
+CHECK_ERROR_MSG="\
+===========================================================================\\n\
+Tests are disabled. Run configure with --enable-tests flag to enable them.\\n\
+==========================================================================="
+
 check-recursive:
-	@>&2 echo "==========================================="
-	@>&2 echo "Tests are not enabled. Run configure with"
-	@>&2 echo "--enable-tests flag to enable tests."
-	@>&2 echo "==========================================="
-	@exit 1
+	-@echo -e $(CHECK_ERROR_MSG)
+	-@exit 1
 endif

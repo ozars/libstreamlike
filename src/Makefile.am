@@ -1,11 +1,13 @@
 if ENABLE_HTTP
-HTTP_C = streamlike_http.c
-HTTP_H = streamlike_http.h
-HTTP_LIBADD = -lcurl
+HTTP_C      = streamlike_http.c
+HTTP_H      = streamlike_http.h
+HTTP_CFLAGS = @CURL_CFLAGS@
+HTTP_LIBS   = @CURL_LIBS@
 else
-HTTP_C =
-HTTP_H =
-HTTP_LIBADD =
+HTTP_C      =
+HTTP_H      =
+HTTP_CFLAGS =
+HTTP_LIBS   =
 endif
 
 if ENABLE_DEBUG
@@ -20,6 +22,6 @@ libstreamlike_la_SOURCES = streamlike.h \
 						   circbuf.h circbuf.c \
 						   $(HTTP_C) $(HTTP_H) \
 						   $(DEBUG_H)
-libstreamlike_la_CFLAGS = -std=gnu11
-libstreamlike_la_LIBADD = $(HTTP_LIBADD)
+libstreamlike_la_CFLAGS = -std=gnu11 $(HTTP_CFLAGS)
+libstreamlike_la_LIBADD = $(HTTP_LIBS)
 include_HEADERS = streamlike.h streamlike_file.h $(HTTP_H) $(DEBUG_H)

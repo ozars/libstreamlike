@@ -44,6 +44,7 @@ size_t sl_http_write_cb_(void *curlbuf, size_t ignore_this, size_t curlbuf_size,
            http->curlbuf_off, curlbuf_size, http->outbuf, http->outbuf_off,
            http->outbuf_size);
     if (http->state == SL_HTTP_ABORTED) {
+        /* TODO: Better check this in configure script. */
         assert(-1 != CURL_WRITEFUNC_PAUSE);
         SL_LOG("Aborted.");
         return -1;

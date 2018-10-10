@@ -24,13 +24,16 @@ LT_INIT
 # Checks for libraries and arguments
 
 AC_ARG_ENABLE([debug], AC_HELP_STRING([--enable-debug], [enable debug flag]))
+if test "x$enable_debug" != "xyes"; then enable_debug="no"; fi
 AM_CONDITIONAL([ENABLE_DEBUG], [test x$enable_debug = xyes])
 
 AC_ARG_ENABLE([tests], AC_HELP_STRING([--enable-tests], [compile tests]))
+if test "x$enable_tests" != "xyes"; then enable_tests="no"; fi
 AM_CONDITIONAL([ENABLE_TESTS], [test x$enable_tests = xyes])
 
 AC_ARG_ENABLE([http], AC_HELP_STRING([--disable-http],
               [disable streamlike_http functionality]))
+if test "x$enable_http" != "xno"; then enable_http="yes"; fi
 AM_CONDITIONAL([ENABLE_HTTP], [test x$enable_http = xyes])
 
 AM_COND_IF([ENABLE_DEBUG], [
@@ -42,7 +45,7 @@ AM_COND_IF([ENABLE_DEBUG], [
 AM_COND_IF([ENABLE_TESTS], [
     PKG_CHECK_MODULES([CHECK], [check >= 0.12.0])
     AM_COND_IF([ENABLE_HTTP], [
-        PKG_CHECK_MODULES([LIBMICROHTTPD], [libmicrohttpd >= 0.9.44])
+        PKG_CHECK_MODULES([MICROHTTPD], [libmicrohttpd >= 0.9.44])
     ])
 ])
 
@@ -70,3 +73,10 @@ AC_CONFIG_FILES([Makefile
                  src/Makefile
                  tests/Makefile])
 AC_OUTPUT
+
+AC_MSG_NOTICE([
+
+    Streamlike HTTP:  $enable_http
+    Tests:            $enable_tests
+    Debug Mode:       $enable_debug
+])
