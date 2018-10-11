@@ -40,9 +40,9 @@ size_t sl_http_write_cb_(void *curlbuf, size_t ignore_this, size_t curlbuf_size,
     void *inp = http->outbuf + http->outbuf_off;
     void *outp = curlbuf + http->curlbuf_off;
 
-    SL_LOG("curlbuf[%p, %zu, %zu], outbuf[%p, %zu, %zu]", curlbuf,
-           http->curlbuf_off, curlbuf_size, http->outbuf, http->outbuf_off,
-           http->outbuf_size);
+    /* SL_LOG("curlbuf[%p, %zu, %zu], outbuf[%p, %zu, %zu]", curlbuf, */
+    /*        http->curlbuf_off, curlbuf_size, http->outbuf, http->outbuf_off, */
+    /*        http->outbuf_size); */
     if (http->state == SL_HTTP_ABORTED) {
         /* TODO: Better check this in configure script. */
         assert(-1 != CURL_WRITEFUNC_PAUSE);
