@@ -14,3 +14,22 @@
 #  define SL_LOG(...) ((void)0)
 # endif
 #endif
+
+#ifndef SL_ASSERT
+# if defined(SL_DEBUG)
+#  include <assert.h>
+/**
+ * Asertion is enabled since `SL_DEBUG` was defined. Standard C library
+ * assertion is used by default. `SL_ASSERT` can be defined by user before
+ * including this header file.
+ */
+#  define SL_ASSERT(x) assert(x)
+# else
+/**
+ * Asertion is disabled since `SL_DEBUG` was not defined. Standard C library
+ * assertion is used when enabled. `SL_ASSERT` can be defined by user before
+ * including this header file.
+ */
+#  define SL_ASSERT(x) ((void)0)
+# endif
+#endif
