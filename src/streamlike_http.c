@@ -23,12 +23,40 @@ typedef struct sl_http_s
     size_t outbuf_size;
     void *outbuf;
     enum {
-        SL_HTTP_READY,
-        SL_HTTP_WORKING,
-        SL_HTTP_PAUSED,
-        SL_HTTP_ABORTED
+        SL_HTTP_READY = 0,
+        SL_HTTP_WORKING = 1,
+        SL_HTTP_PAUSED = 2,
+        SL_HTTP_ABORT_REQUESTED = 3,
+        SL_HTTP_ABORTED = 4
     } state;
 } sl_http_t;
+
+static
+void sl_http_set_state_(sl_http_t *http, int state)
+{
+    switch (state)
+    {
+        case SL_HTTP_READY:
+            SL_LOG("Setting state to READY.");
+            break;
+        case SL_HTTP_WORKING:
+            SL_LOG("Setting state to WORKING.");
+            break;
+        case SL_HTTP_PAUSED:
+            SL_LOG("Setting state to PAUSED.");
+            break;
+        case SL_HTTP_ABORT_REQUESTED:
+            SL_LOG("Setting state to ABORT_REQUESTED.");
+            break;
+        case SL_HTTP_ABORTED:
+            SL_LOG("Setting state to ABORTED.");
+            break;
+        default:
+            SL_LOG("Unexpected state: %d", state);
+            abort();
+    }
+    http->state = state;
+}
 
 static
 size_t sl_http_write_cb_(void *curlbuf, size_t ignore_this, size_t curlbuf_size,
