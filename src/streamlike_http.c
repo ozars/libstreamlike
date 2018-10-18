@@ -20,6 +20,11 @@ typedef struct sl_http_s
     off_t http_off;
     off_t http_len;
     int http_status;
+    enum {
+        SL_HTTP_RANGE_UNKNOWN,
+        SL_HTTP_RANGE_YES,
+        SL_HTTP_RANGE_NO
+    } http_range_allowed;
     CURL *curl;
     CURLM *curlm;
 
@@ -190,13 +195,55 @@ size_t sl_http_header_cb_(void *curlbuf, size_t nitems, size_t curlbuf_size,
         /* Headers of interests. */
         const char cnt_len[] = "Content-Length";
         const char cnt_rng[] = "Content-Range";
+        const char act_rng[] = "Accept-Ranges";
 
+        enum {
+            HEADER_CONTENT_LENGTH,
+            HEADER_CONTENT_RANGE,
+            HEADER_ACCEPT_RANGES,
+            HEADER_OTHER
+        } header_type;
+
+        if (memcasestartswith(line, key_len, cnt_rng, sizeof(cnt_rng) - 1)) {
+            header_type = HEADER_CONTENT_RANGE;
+
+        } else if(memcasestartswith(line, key_len, cnt_len,
+                                    sizeof(cnt_len) - 1)) {
+            header_type = HEADER_CONTENT_LENGTH;
+
+        } else if(memcasestartswith(line, key_len, act_rng,
+                                    sizeof(act_rng) - 1)) {
+            header_type = HEADER_ACCEPT_RANGES;
+
+        } else {
+            header_type = HEADER_OTHER;
+
+        }
+
+        /* Set if range support isn't known. */
+        if (http->http_range_allowed == SL_HTTP_RANGE_UNKNOWN) {
+            if (header_type == HEADER_CONTENT_RANGE) {
+                http->http_range_allowed = SL_HTTP_RANGE_YES;
+            } else if (http->http_off != 0 && http->http_status == 200) {
+                http->http_range_allowed = SL_HTTP_RANGE_NO;
+            } else if (header_type == HEADER_ACCEPT_RANGES) {
+                size_t value_len = line_end - value;
+                if (memcasestartswith(value, value_len, "bytes", 5)) {
+                    http->http_range_allowed = SL_HTTP_RANGE_YES;
+                } else {
+                    http->http_range_allowed = SL_HTTP_RANGE_NO;
+                }
+            }
+        }
+
+        /* If length isn't known... */
         if (http->http_len < 0) {
+
             /* If the content-range is found and status is 406 Partial Content,
              * read total length of stream. */
             if (http->http_status == 206
-                    && memcasestartswith(line, key_len, cnt_rng,
-                                         sizeof(cnt_rng) - 1)) {
+                    && header_type == HEADER_CONTENT_RANGE) {
+
                 const char *length_part = memchr(value, '/', line_end - value);
                 if (!length_part) {
                     SL_LOG("Skipping header entry as there is no length divider: "
@@ -212,11 +259,12 @@ size_t sl_http_header_cb_(void *curlbuf, size_t nitems, size_t curlbuf_size,
                 SL_LOG("Set http length to %jd from content range.",
                        (intmax_t)http->http_len);
 
+
             /* ...or if content-length is found and status is 200 OK, read total
              * length of the stream. */
-            } else if (http->http_status == 200 &&
-                       memcasestartswith(line, key_len, cnt_len,
-                                         sizeof(cnt_len) - 1)) {
+            } else if (http->http_status == 200
+                        && header_type == HEADER_CONTENT_LENGTH) {
+
                 http->http_len = strtoull(value, NULL, 10);
                 SL_LOG("Set http length to %jd from content length.",
                        (intmax_t)http->http_len);
@@ -317,6 +365,7 @@ int sl_http_open(streamlike_t *stream, const char *uri)
     http->http_off = 0;
     http->http_len = -1;
     http->http_status = 0;
+    http->http_range_allowed = SL_HTTP_RANGE_UNKNOWN;
     http->curlbuf_off = 0;
     http->state = SL_HTTP_READY;
 
@@ -454,6 +503,8 @@ int sl_http_eof_cb(void *context)
 
 int sl_http_error_cb(void *context)
 {
+    /* TODO: Implement error handling. */
+    return 0;
 }
 
 off_t sl_http_length_cb(void *context)
@@ -464,4 +515,12 @@ off_t sl_http_length_cb(void *context)
 
 sl_seekable_t sl_http_seekable_cb(void *context)
 {
+    /* TODO: Send HEAD request if http_range_allowed is unknown. */
+    sl_http_t *http = context;
+    switch(http->http_range_allowed) {
+        case SL_HTTP_RANGE_YES:
+            return SL_SEEKING_SUPPORTED;
+        default:
+            return SL_SEEKING_NOT_SUPPORTED;
+    }
 }
