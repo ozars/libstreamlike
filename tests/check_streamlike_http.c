@@ -51,7 +51,7 @@ int test_server_get_range(void *cls, enum MHD_ValueKind kind, const char *key,
         ctx->status = TEST_SERVER_BAD_HEADERS;
     } else if (value[offset] == '\0') {
         ctx->status = TEST_SERVER_PARTIAL;
-        ctx->range_end = content_len;
+        ctx->range_end = content_len - 1;
     } else if (value[offset] == ',') {
         ctx->status = TEST_SERVER_NOT_SUPPORTED;
     } else if (sscanf(value += offset, "%zu%n", &ctx->range_end, &offset)
@@ -210,6 +210,139 @@ START_TEST(test_multiple_read)
 }
 END_TEST
 
+START_TEST(test_multiple_read2)
+{
+    char buffer[511];
+    size_t len;
+    size_t offset = 0;
+    do {
+        len = sl_read(stream, buffer, sizeof(buffer));
+        ck_assert_uint_gt(len, 0);
+        ck_assert_uint_le(len, TEST_DATA_LENGTH);
+        ck_assert_uint_le(len, sizeof(buffer));
+        ck_assert_mem_eq(buffer, test_data + offset, len);
+        offset += len;
+    } while(offset < TEST_DATA_LENGTH);
+}
+END_TEST
+
+START_TEST(test_read_until_eof)
+{
+    char buffer[512];
+    size_t len;
+    size_t offset = 0;
+    do {
+        len = sl_read(stream, buffer, sizeof(buffer));
+        ck_assert_uint_le(len, TEST_DATA_LENGTH);
+        ck_assert_uint_le(len, sizeof(buffer));
+        ck_assert_mem_eq(buffer, test_data + offset, len);
+        offset += len;
+        ck_assert_uint_le(offset, TEST_DATA_LENGTH);
+    } while(!sl_eof(stream));
+}
+END_TEST
+
+START_TEST(test_read_until_eof2)
+{
+    char buffer[511];
+    size_t len;
+    size_t offset = 0;
+    do {
+        len = sl_read(stream, buffer, sizeof(buffer));
+        ck_assert_uint_le(len, TEST_DATA_LENGTH);
+        ck_assert_uint_le(len, sizeof(buffer));
+        ck_assert_mem_eq(buffer, test_data + offset, len);
+        offset += len;
+        ck_assert_uint_le(offset, TEST_DATA_LENGTH);
+    } while(!sl_eof(stream));
+}
+END_TEST
+
+START_TEST(test_seek_and_read_until_eof)
+{
+    char buffer[512];
+    size_t len;
+    size_t offset = TEST_DATA_LENGTH / 2;
+    ck_assert_int_eq(sl_seek(stream, offset, SL_SEEK_SET), 0);
+    do {
+        len = sl_read(stream, buffer, sizeof(buffer));
+        ck_assert_uint_le(len, TEST_DATA_LENGTH);
+        ck_assert_uint_le(len, sizeof(buffer));
+        ck_assert_mem_eq(buffer, test_data + offset, len);
+        offset += len;
+        ck_assert_uint_le(offset, TEST_DATA_LENGTH);
+    } while(!sl_eof(stream));
+}
+END_TEST
+
+START_TEST(test_seek_and_read_until_eof2)
+{
+    char buffer[511];
+    size_t len;
+    size_t offset = TEST_DATA_LENGTH / 2;
+    ck_assert_int_eq(sl_seek(stream, offset, SL_SEEK_SET), 0);
+    do {
+        len = sl_read(stream, buffer, sizeof(buffer));
+        ck_assert_uint_le(len, TEST_DATA_LENGTH);
+        ck_assert_uint_le(len, sizeof(buffer));
+        ck_assert_mem_eq(buffer, test_data + offset, len);
+        offset += len;
+        ck_assert_uint_le(offset, TEST_DATA_LENGTH);
+    } while(!sl_eof(stream));
+}
+END_TEST
+
+START_TEST(test_single_seek_and_read)
+{
+    const size_t seek_to = TEST_DATA_LENGTH / 2;
+    char buffer[seek_to];
+    size_t len;
+
+    ck_assert_int_eq(sl_seek(stream, seek_to, SL_SEEK_SET), 0);
+    len = sl_read(stream, buffer, sizeof(buffer));
+    ck_assert_uint_eq(len, sizeof(buffer));
+    ck_assert_mem_eq(buffer, test_data + seek_to, len);
+}
+END_TEST
+
+START_TEST(test_multiple_seek_and_read)
+{
+    char buffer[1024];
+    size_t len;
+    size_t expected_len;
+
+    for (size_t seek_to = 0; seek_to < TEST_DATA_LENGTH - 1024; seek_to += 1023)
+    {
+        ck_assert_int_eq(sl_seek(stream, seek_to, SL_SEEK_SET), 0);
+        expected_len = seek_to + sizeof(buffer) < TEST_DATA_LENGTH
+                        ? sizeof(buffer)
+                        : TEST_DATA_LENGTH - seek_to;
+        len = sl_read(stream, buffer, sizeof(buffer));
+        ck_assert_uint_eq(len, expected_len);
+        ck_assert_mem_eq(buffer, test_data + seek_to, len);
+    }
+}
+END_TEST
+
+START_TEST(test_multiple_seek_and_read2)
+{
+    char buffer[1023];
+    size_t len;
+    size_t expected_len;
+
+    for (size_t seek_to = 0; seek_to < TEST_DATA_LENGTH - 1024; seek_to += 1023)
+    {
+        ck_assert_int_eq(sl_seek(stream, seek_to, SL_SEEK_SET), 0);
+        expected_len = seek_to + sizeof(buffer) < TEST_DATA_LENGTH
+                        ? sizeof(buffer)
+                        : TEST_DATA_LENGTH - seek_to;
+        len = sl_read(stream, buffer, sizeof(buffer));
+        ck_assert_uint_eq(len, expected_len);
+        ck_assert_mem_eq(buffer, test_data + seek_to, len);
+    }
+}
+END_TEST
+
 Suite* streamlike_http_suite()
 {
     Suite *s;
@@ -221,6 +354,13 @@ Suite* streamlike_http_suite()
     tcase_add_checked_fixture(tc, setup_global, teardown_global);
     tcase_add_test(tc, test_single_read);
     tcase_add_test(tc, test_multiple_read);
+    tcase_add_test(tc, test_read_until_eof);
+    tcase_add_test(tc, test_read_until_eof2);
+    tcase_add_test(tc, test_seek_and_read_until_eof);
+    tcase_add_test(tc, test_seek_and_read_until_eof2);
+    tcase_add_test(tc, test_single_seek_and_read);
+    tcase_add_test(tc, test_multiple_seek_and_read);
+    tcase_add_test(tc, test_multiple_seek_and_read2);
     suite_add_tcase(s, tc);
 
     return s;
