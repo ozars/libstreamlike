@@ -354,6 +354,7 @@ Suite* streamlike_http_suite()
     tcase_add_checked_fixture(tc, setup_global, teardown_global);
     tcase_add_test(tc, test_single_read);
     tcase_add_test(tc, test_multiple_read);
+    tcase_add_test(tc, test_multiple_read2);
     tcase_add_test(tc, test_read_until_eof);
     tcase_add_test(tc, test_read_until_eof2);
     tcase_add_test(tc, test_seek_and_read_until_eof);
