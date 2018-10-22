@@ -37,7 +37,7 @@ if test "x$enable_http" != "xno"; then enable_http="yes"; fi
 AM_CONDITIONAL([ENABLE_HTTP], [test x$enable_http = xyes])
 
 AM_COND_IF([ENABLE_DEBUG], [
-    AC_SUBST([STREAMLIKE_CPPFLAGS], ["-DSTREAMLIKE_DEBUG"])
+    AC_SUBST([STREAMLIKE_CPPFLAGS], ["-DSL_DEBUG"])
 ], [
     AC_SUBST([STREAMLIKE_CPPFLAGS], [""])
 ])

@@ -1,4 +1,14 @@
+#ifdef SL_DEBUG
 #include "debug.h"
+#endif
+
+#ifndef SL_HTTP_ASSERT
+# ifdef SL_ASSERT
+#  define SL_HTTP_ASSERT(...) SL_ASSERT(__VA_ARGS__)
+# else
+#  define SL_HTTP_ASSERT(...) ((void)0)
+# endif
+#endif
 #include "http.h"
 
 #include <ctype.h>
@@ -8,9 +18,6 @@
 #include <strings.h>
 #include <pthread.h>
 #include <curl/curl.h>
-
-#include <assert.h>
-#define SL_HTTP_ASSERT(...) assert(__VA_ARGS__)
 
 static pthread_mutex_t curl_global_init_mutex = PTHREAD_MUTEX_INITIALIZER;
 static int curl_global_init_done = 0;
@@ -289,7 +296,7 @@ void sl_cancel_transfer_(sl_http_t *http)
         SL_LOG("Unpausing for cancellation...");
         sl_http_set_state_(http, SL_HTTP_ABORT_REQUESTED);
         ret = curl_easy_pause(http->curl, CURLPAUSE_CONT);
-        assert(ret == CURLE_WRITE_ERROR);
+        SL_HTTP_ASSERT(ret == CURLE_WRITE_ERROR);
     } else {
         sl_http_set_state_(http, SL_HTTP_ABORT_REQUESTED);
     }
@@ -298,11 +305,11 @@ void sl_cancel_transfer_(sl_http_t *http)
         SL_LOG("Concluding abort...");
         do {
             ret = curl_multi_wait(http->curlm, NULL, 0, 0, NULL);
-            assert(ret == CURLM_OK);
+            SL_HTTP_ASSERT(ret == CURLM_OK);
             ret = curl_multi_perform(http->curlm, &count);
         } while (ret == CURLM_OK && count > 0);
-        assert(count == 0);
-        assert(ret == CURLM_OK);
+        SL_HTTP_ASSERT(count == 0);
+        SL_HTTP_ASSERT(ret == CURLM_OK);
     }
 
     http->curlbuf_off = 0;

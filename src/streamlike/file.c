@@ -1,3 +1,14 @@
+#ifdef SL_DEBUG
+#include "debug.h"
+#endif
+
+#ifndef SL_FILE_ASSERT
+# ifdef SL_ASSERT
+#  define SL_FILE_ASSERT(...) SL_ASSERT(__VA_ARGS__)
+# else
+#  define SL_FILE_ASSERT(...) ((void)0)
+# endif
+#endif
 #include "file.h"
 
 #include <stdlib.h>
@@ -7,7 +18,8 @@ streamlike_t* sl_fopen(const char *path, const char *mode)
 {
     FILE *file;
 
-    SL_ASSERT(path != NULL && mode == NULL);
+    SL_FILE_ASSERT(path != NULL);
+    SL_FILE_ASSERT(mode != NULL);
 
     file = fopen(path, mode);
     if (!file) {
@@ -20,7 +32,7 @@ streamlike_t* sl_fopen2(FILE *file)
 {
     streamlike_t *stream;
 
-    SL_ASSERT(file != NULL);
+    SL_FILE_ASSERT(file != NULL);
 
     stream = malloc(sizeof(streamlike_t));
     if (!stream) {
@@ -49,8 +61,8 @@ streamlike_t* sl_fopen2(FILE *file)
 
 int sl_fclose(streamlike_t *stream)
 {
-    SL_ASSERT(stream != NULL);
-    SL_ASSERT(stream->context != NULL);
+    SL_FILE_ASSERT(stream != NULL);
+    SL_FILE_ASSERT(stream->context != NULL);
 
     if (fclose((FILE*)stream->context) < 0) {
         return -1;

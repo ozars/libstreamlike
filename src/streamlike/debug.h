@@ -1,10 +1,15 @@
 #ifndef SL_LOG
-# ifdef STREAMLIKE_DEBUG
+# ifdef SL_DEBUG
 #  include <stdio.h>
-#  define SL_LOG_COLOR_START "\e[96m\e[40m"
-#  define SL_LOG_COLOR_END   "\e[0m"
-#  define SL_LOG_PREFIX      SL_LOG_COLOR_START "%%LOG: "
-#  define SL_LOG_POSTFIX     "\n" SL_LOG_COLOR_END
+#  ifdef SL_LOG_COLOR
+#   define SL_LOG_COLOR_START "\e[96m\e[40m"
+#   define SL_LOG_COLOR_END   "\e[0m"
+#  else
+#   define SL_LOG_COLOR_START ""
+#   define SL_LOG_COLOR_END   ""
+#  endif
+#  define SL_LOG_PREFIX  SL_LOG_COLOR_START "%%LOG: "
+#  define SL_LOG_POSTFIX SL_LOG_COLOR_END   "\n"
 #  define SL_LOG(msg, ...) \
     do { \
         fprintf(stderr, SL_LOG_PREFIX "%s:%d:%s: " msg SL_LOG_POSTFIX, \

@@ -9,6 +9,10 @@
 #ifndef STREAMLIKE_H
 #define STREAMLIKE_H
 
+#ifdef SL_DEBUG
+#include "streamlike/debug.h"
+#endif
+
 #ifndef SL_ASSERT
 #define SL_ASSERT(x) ((void)0)
 #endif

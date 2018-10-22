@@ -16,6 +16,8 @@ else
 DEBUG_H =
 endif
 
+AM_CPPFLAGS = @STREAMLIKE_CPPFLAGS@
+
 lib_LTLIBRARIES = libstreamlike.la
 libstreamlike_la_SOURCES = streamlike.h \
                            streamlike/file.c streamlike/file.h \
