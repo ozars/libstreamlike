@@ -1,5 +1,5 @@
-#include "streamlike_http.h"
-#include "streamlike_debug.h"
+#include "debug.h"
+#include "http.h"
 
 #include <ctype.h>
 #include <stdint.h>

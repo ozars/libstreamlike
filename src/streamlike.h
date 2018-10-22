@@ -575,4 +575,4 @@ inline int sl_seek_to_ckp(const streamlike_t *stream, const sl_ckp_t* ckp)
 } // extern "C"
 #endif
 
-#endif /* ZIDX_STREAM_H */
+#endif /* STREAMLIKE_H */

@@ -2,7 +2,7 @@
 #include <string.h>
 #include <check.h>
 
-#include "streamlike_file.h"
+#include "streamlike/file.h"
 
 #define TEMP_FILE_NAME "test.tmp"
 

@@ -2,8 +2,7 @@
 #define STREAMLIKE_FILE_H
 
 #include <stdio.h>
-
-#include "streamlike.h"
+#include "../streamlike.h"
 
 streamlike_t* sl_fopen(const char *path, const char *mode);
 streamlike_t* sl_fopen2(FILE *file);

@@ -10,7 +10,7 @@
 #include <sys/socket.h>
 #include <microhttpd.h>
 
-#include "streamlike_http.c"
+#include "streamlike/http.h"
 
 #define TEST_SERVER_PORT 9000
 #define TEST_DATA_LENGTH (1024*1024)

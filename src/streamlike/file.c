@@ -1,4 +1,4 @@
-#include "streamlike_file.h"
+#include "file.h"
 
 #include <stdlib.h>
 #include <sys/stat.h>

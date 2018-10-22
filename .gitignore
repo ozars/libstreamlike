@@ -95,4 +95,5 @@ Makefile
 config.h
 .libs/
 /libtool
+.dirstamp
 

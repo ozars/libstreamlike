@@ -1,7 +1,7 @@
 #ifndef STREAMLIKE_HTTP_H
 #define STREAMLIKE_HTTP_H
 
-#include "streamlike.h"
+#include "../streamlike.h"
 
 void sl_http_library_init() __attribute__((constructor));
 void sl_http_library_cleanup();
