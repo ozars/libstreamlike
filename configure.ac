@@ -8,6 +8,7 @@ AC_CONFIG_SRCDIR([src/streamlike.h])
 AC_CONFIG_HEADERS([config.h])
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_MACRO_DIRS([m4])
+AC_REQUIRE_AUX_FILE([tap-driver.sh])
 
 AM_INIT_AUTOMAKE([foreign -Wall -Werror subdir-objects])
 
@@ -17,6 +18,7 @@ AC_PROG_INSTALL
 AC_PROG_MAKE_SET
 AM_PROG_AR
 AC_PROG_LIBTOOL
+AC_PROG_AWK
 
 # Initialize libtool to build .la files
 LT_INIT
