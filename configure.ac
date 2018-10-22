@@ -78,7 +78,7 @@ AC_OUTPUT
 
 AC_MSG_NOTICE([
 
-    Streamlike HTTP:  $enable_http
-    Tests:            $enable_tests
-    Debug Mode:       $enable_debug
+Streamlike HTTP...$enable_http
+Tests.............$enable_tests
+Debug Mode........$enable_debug
 ])

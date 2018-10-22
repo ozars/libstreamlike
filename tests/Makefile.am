@@ -13,7 +13,7 @@ HTTP_LIBS    =
 endif
 
 LOG_DRIVER = env CK_TAP_LOG_FILE_NAME='-' AM_TAP_AWK='$(AWK)' \
-			 '$(SHELL)' '$(top_srcdir)/build-aux/tap-driver.sh'
+             '$(SHELL)' '$(top_srcdir)/build-aux/tap-driver.sh'
 
 TESTS = check_streamlike_file check_circbuf $(HTTP_TEST)
 
