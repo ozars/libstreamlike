@@ -9,6 +9,13 @@
 #  define SL_HTTP_ASSERT(...) ((void)0)
 # endif
 #endif
+#ifndef SL_HTTP_LOG
+# ifdef SL_LOG
+#  define SL_HTTP_LOG(...) SL_LOG(__VA_ARGS__)
+# else
+#  define SL_HTTP_LOG(...) ((void)0)
+# endif
+#endif
 #include "http.h"
 
 #include <ctype.h>
@@ -54,22 +61,22 @@ void sl_http_set_state_(sl_http_t *http, int state)
     switch (state)
     {
         case SL_HTTP_READY:
-            SL_LOG("Setting state to READY.");
+            SL_HTTP_LOG("Setting state to READY.");
             break;
         case SL_HTTP_WORKING:
-            SL_LOG("Setting state to WORKING.");
+            SL_HTTP_LOG("Setting state to WORKING.");
             break;
         case SL_HTTP_PAUSED:
-            SL_LOG("Setting state to PAUSED.");
+            SL_HTTP_LOG("Setting state to PAUSED.");
             break;
         case SL_HTTP_ABORT_REQUESTED:
-            SL_LOG("Setting state to ABORT_REQUESTED.");
+            SL_HTTP_LOG("Setting state to ABORT_REQUESTED.");
             break;
         case SL_HTTP_ABORTED:
-            SL_LOG("Setting state to ABORTED.");
+            SL_HTTP_LOG("Setting state to ABORTED.");
             break;
         default:
-            SL_LOG("Unexpected state: %d", state);
+            SL_HTTP_LOG("Unexpected state: %d", state);
             abort();
     }
     http->state = state;
@@ -89,23 +96,23 @@ size_t sl_http_write_cb_(void *curlbuf, size_t ignore_this, size_t curlbuf_size,
         sl_http_set_state_(http, SL_HTTP_ABORTED);
         curl_multi_remove_handle(http->curlm, http->curl);
         curl_multi_add_handle(http->curlm, http->curl);
-        SL_LOG("Aborted.");
+        SL_HTTP_LOG("Aborted.");
         return -1;
     }
 
     if (curlbuf_avail < outbuf_avail) {
-        SL_LOG("Partial read from curlbuf[%zu..%zu] to outbuf[%zu..%zu] of "
-               "length %zu.", http->curlbuf_off, curlbuf_size - 1,
-               http->outbuf_off, http->outbuf_size - 1, curlbuf_avail);
+        SL_HTTP_LOG("Partial read from curlbuf[%zu..%zu] to outbuf[%zu..%zu] "
+                    "of length %zu.", http->curlbuf_off, curlbuf_size - 1,
+                    http->outbuf_off, http->outbuf_size - 1, curlbuf_avail);
         memcpy(inp, outp, curlbuf_avail);
         http->outbuf_off += curlbuf_avail;
         http->curlbuf_off = 0;
         http->http_off += curlbuf_avail;
         return curlbuf_size;
     }
-    SL_LOG("Paused after read from curlbuf[%zu..%zu] to outbuf[%zu..%zu] of "
-           "length %zu.", http->curlbuf_off, curlbuf_size - 1,
-           http->outbuf_off, http->outbuf_size - 1, outbuf_avail);
+    SL_HTTP_LOG("Paused after read from curlbuf[%zu..%zu] to outbuf[%zu..%zu] "
+                "of length %zu.", http->curlbuf_off, curlbuf_size - 1,
+                http->outbuf_off, http->outbuf_size - 1, outbuf_avail);
     memcpy(inp, outp, outbuf_avail);
     http->outbuf_off += outbuf_avail;
     http->curlbuf_off += outbuf_avail;
@@ -159,31 +166,32 @@ size_t sl_http_header_cb_(void *curlbuf, size_t nitems, size_t curlbuf_size,
 
     /* Trim, then return if line is all whitespaces. */
     if (memtrim(curlbuf, curlbuf_size, &line, &line_end)) {
-        SL_LOG("Skipping all whitespaces header entry.");
+        SL_HTTP_LOG("Skipping all whitespaces header entry.");
         return curlbuf_size;
     }
 
     /* TODO: Is this scanf secure for a non-NULL terminated line? */
     if (sscanf(line, "HTTP/%*s %d ", &http->http_status) == 1) {
-        SL_LOG("HTTP status read: %d", http->http_status);
+        SL_HTTP_LOG("HTTP status read: %d", http->http_status);
         return curlbuf_size;
     }
 
     /* If there is a colon... */
     const char *colon = memchr(line, ':', line_end - line);
     if (colon) {
-        SL_LOG("Parsing header line: '%.*s'", (int)(line_end - line), line);
+        SL_HTTP_LOG("Parsing header line: '%.*s'", (int)(line_end - line),
+                    line);
 
         /* Log and return if colon is the last character. */
         if (colon + 1 == line_end) {
-            SL_LOG("Skipping header entry with no value: '%.*s'",
+            SL_HTTP_LOG("Skipping header entry with no value: '%.*s'",
                    (int)(line_end - line), line);
             return curlbuf_size;
         }
 
         /* Log and return if colon is the first character. */
         if (colon == line) {
-            SL_LOG("Skipping header entry with no key: '%.*s'",
+            SL_HTTP_LOG("Skipping header entry with no key: '%.*s'",
                    (int)(line_end - line), line);
             return curlbuf_size;
         }
@@ -191,7 +199,7 @@ size_t sl_http_header_cb_(void *curlbuf, size_t nitems, size_t curlbuf_size,
         /* Get the trimmed value and return if it's empty... */
         const char *value;
         if (memtrim(colon + 1, line_end - colon - 1, &value, NULL)) {
-            SL_LOG("Skipping header entry with empty value: '%.*s'",
+            SL_HTTP_LOG("Skipping header entry with empty value: '%.*s'",
                    (int)(line_end - line), line);
             return curlbuf_size;
         }
@@ -253,18 +261,20 @@ size_t sl_http_header_cb_(void *curlbuf, size_t nitems, size_t curlbuf_size,
 
                 const char *length_part = memchr(value, '/', line_end - value);
                 if (!length_part) {
-                    SL_LOG("Skipping header entry as there is no length divider: "
-                           "'%.*s'", (int)(line_end - line), line);
+                    SL_HTTP_LOG("Skipping header entry as there is no length "
+                                "divider: '%.*s'", (int)(line_end - line),
+                                line);
                     return curlbuf_size;
                 }
                 if (++length_part == line_end) {
-                    SL_LOG("Skipping header entry as length divider is at the end: "
-                           "'%.*s'", (int)(line_end - line), line);
+                    SL_HTTP_LOG("Skipping header entry as length divider is at "
+                                "the end: '%.*s'", (int)(line_end - line),
+                                line);
                     return curlbuf_size;
                 }
                 http->http_len = strtoull(length_part, NULL, 10);
-                SL_LOG("Set http length to %jd from content range.",
-                       (intmax_t)http->http_len);
+                SL_HTTP_LOG("Set http length to %jd from content range.",
+                            (intmax_t)http->http_len);
 
 
             /* ...or if content-length is found and status is 200 OK, read total
@@ -273,8 +283,8 @@ size_t sl_http_header_cb_(void *curlbuf, size_t nitems, size_t curlbuf_size,
                         && header_type == HEADER_CONTENT_LENGTH) {
 
                 http->http_len = strtoull(value, NULL, 10);
-                SL_LOG("Set http length to %jd from content length.",
-                       (intmax_t)http->http_len);
+                SL_HTTP_LOG("Set http length to %jd from content length.",
+                            (intmax_t)http->http_len);
             }
 
         }
@@ -287,13 +297,13 @@ void sl_cancel_transfer_(sl_http_t *http)
 {
     int count = 1;
     CURLcode ret;
-    SL_LOG("Trying to cancel...");
+    SL_HTTP_LOG("Trying to cancel...");
     if (http->state == SL_HTTP_READY) {
-        SL_LOG("No need to cancel.");
+        SL_HTTP_LOG("No need to cancel.");
         return;
     }
     if (http->state == SL_HTTP_PAUSED) {
-        SL_LOG("Unpausing for cancellation...");
+        SL_HTTP_LOG("Unpausing for cancellation...");
         sl_http_set_state_(http, SL_HTTP_ABORT_REQUESTED);
         ret = curl_easy_pause(http->curl, CURLPAUSE_CONT);
         SL_HTTP_ASSERT(ret == CURLE_WRITE_ERROR);
@@ -302,7 +312,7 @@ void sl_cancel_transfer_(sl_http_t *http)
     }
 
     if (http->state != SL_HTTP_ABORTED) {
-        SL_LOG("Concluding abort...");
+        SL_HTTP_LOG("Concluding abort...");
         do {
             ret = curl_multi_wait(http->curlm, NULL, 0, 0, NULL);
             SL_HTTP_ASSERT(ret == CURLM_OK);
@@ -321,7 +331,7 @@ void sl_http_library_init()
     if (!curl_global_init_done) {
         curl_global_init(CURL_GLOBAL_DEFAULT);
         curl_global_init_done = 1;
-        SL_LOG("Initialized library.");
+        SL_HTTP_LOG("Initialized library.");
     }
     pthread_mutex_unlock(&curl_global_init_mutex);
 }
@@ -332,7 +342,7 @@ void sl_http_library_cleanup()
     if (curl_global_init_done) {
         curl_global_cleanup();
         curl_global_init_done = 0;
-        SL_LOG("Cleaned up library.");
+        SL_HTTP_LOG("Cleaned up library.");
     }
     pthread_mutex_unlock(&curl_global_init_mutex);
 }
@@ -450,7 +460,7 @@ size_t sl_http_read_cb(void *context, void *buffer, size_t len)
     http->outbuf_off = 0;
     http->outbuf_size = len;
     int count = 1;
-    SL_LOG("Attempting to read %zu bytes...", len);
+    SL_HTTP_LOG("Attempting to read %zu bytes...", len);
     if (http->state == SL_HTTP_PAUSED) {
         curl_easy_pause(http->curl, CURLPAUSE_CONT);
     }
@@ -463,7 +473,7 @@ size_t sl_http_read_cb(void *context, void *buffer, size_t len)
             if (!count) {
                 sl_http_set_state_(http, SL_HTTP_READY);
             }
-            SL_LOG("Short read %zu.", http->outbuf_off);
+            SL_HTTP_LOG("Short read %zu.", http->outbuf_off);
             return http->outbuf_off;
         } else {
             if (http->state == SL_HTTP_READY) {
@@ -485,7 +495,7 @@ int sl_http_seek_cb(void *context, off_t offset, int whence)
     char range_str[128];
 
     snprintf(range_str, sizeof(range_str), "%jd-", (intmax_t)offset);
-    SL_LOG("Requesting range '%s'", range_str);
+    SL_HTTP_LOG("Requesting range '%s'", range_str);
 
     sl_http_t *http = context;
     sl_cancel_transfer_(http);
