@@ -21,7 +21,7 @@ AM_CPPFLAGS = @STREAMLIKE_CPPFLAGS@
 lib_LTLIBRARIES = libstreamlike.la
 libstreamlike_la_SOURCES = streamlike.h \
                            streamlike/file.c streamlike/file.h \
-                           streamlike/circbuf.h streamlike/circbuf.c \
+                           streamlike/util/circbuf.h streamlike/util/circbuf.c \
                            $(HTTP_C) $(HTTP_H) $(DEBUG_H)
 libstreamlike_la_CFLAGS = -std=gnu11 $(HTTP_CFLAGS)
 libstreamlike_la_LIBADD = $(HTTP_LIBS)

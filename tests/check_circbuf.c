@@ -4,7 +4,7 @@
 #include <pthread.h>
 #include <unistd.h>
 
-#include "streamlike/circbuf.h"
+#include "streamlike/util/circbuf.h"
 
 #define BUFFER_SIZE (1024*1024)
 #define DATA_SIZE (50*BUFFER_SIZE)
