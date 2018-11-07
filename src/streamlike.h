@@ -87,7 +87,7 @@ typedef struct _sl_ckp_opaque_s sl_ckp_t;
  */
 
 /**
- * \name Low-level Callback Definitions
+ * \name Basic Access Callback Definitions
  *
  * @{
  */
@@ -226,15 +226,15 @@ int (*sl_error_cb_t)(void *context);
 typedef
 off_t (*sl_length_cb_t)(void *context);
 
-/** @} */ // Low-Level Callback Definitions
+/** @} */ // Basic Access Callback Definitions
 
 /**
- * \name High-Level Random-Access Callback Definitions
+ * \name Random-Access Callback Definitions
  *
- * Callbacks providing acc to high-level random access capabilities. This
- * interface allows an application to take advantage of random-access facilities
- * provided by underlying input stream. It is useful in particular if underlying
- * input source has some limitations in seeking such as emulated seek or
+ * Callbacks providing access to random access capabilities. This interface
+ * allows an application to take advantage of random-access facilities provided
+ * by underlying input stream. It is useful in particular if underlying input
+ * source has some limitations in seeking such as emulated seek or
  * checkpoint-based seek in the data. Application can optimize seeking requests
  * with respect to these limitations and feedback received from the input
  * source.
@@ -313,7 +313,7 @@ typedef
 size_t (*sl_ckp_metadata_cb_t)(void *context, const sl_ckp_t* ckp,
                                const void** result);
 
-/** @} */ // High-Level Random-Access Callback Definitions
+/** @} */ // Random-Access Callback Definitions
 /** @} */ // Callbacks
 
 /**
@@ -356,10 +356,9 @@ typedef struct streamlike_s
  */
 
 /**
- * \name Low-Level Wrapper Functions
+ * \name Basic Access Wrapper Functions
  *
- * Short hand functions provided for convenience to use low-level streamlike
- * callbacks.
+ * Short hand functions provided for convenience to use basic access callbacks.
  *
  * \note This functions will cause segmentation fault if provided `stream` or
  * the requested capability is `NULL`. Compiling with `SL_DEBUG` will activate
@@ -478,10 +477,10 @@ inline off_t sl_length(const streamlike_t *stream)
     return stream->length(stream->context);
 }
 
-/** @} */ // Low-Level Wrapper Functions
+/** @} */ // Basic Access Wrapper Functions
 
 /**
- * \name High-Level Random-Access Wrapper Functions
+ * \name Random-Access Wrapper Functions
  *
  * Short hand functions provided for convenience to use high-level random-access
  * streamlike callbacks.
@@ -572,7 +571,7 @@ inline int sl_seek_to_ckp(const streamlike_t *stream, const sl_ckp_t* ckp)
     return sl_seek(stream, sl_ckp_offset(stream, ckp), SL_SEEK_SET);
 }
 
-/** @} */ // High-Level Random-Access Wrapper Functions
+/** @} */ // Random-Access Wrapper Functions
 /** @} */ // Wrapper Functions
 
 #ifdef __cplusplus
