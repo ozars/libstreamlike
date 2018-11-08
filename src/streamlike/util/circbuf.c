@@ -4,7 +4,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-typedef struct circbuf_s_
+struct circbuf_s
 {
     void *data;
     size_t size;
@@ -16,11 +16,11 @@ typedef struct circbuf_s_
     volatile int rdone;
     pthread_mutex_t rlock;
     pthread_cond_t  rcond;
-} circbuf_t_;
+};
 
 circbuf_t* circbuf_init(size_t cbuf_size)
 {
-    circbuf_t_* cbuf;
+    circbuf_t* cbuf;
 
     if (cbuf_size == 0) {
         return NULL;
@@ -29,7 +29,7 @@ circbuf_t* circbuf_init(size_t cbuf_size)
      * buffer wraps around. (Otherwise it gets harder to track if buffer length
      * is equal to buffer size or zero.) */
     cbuf_size++;
-    cbuf = malloc(sizeof(circbuf_t_));
+    cbuf = malloc(sizeof(circbuf_t));
     if (!cbuf) {
         return NULL;
     }
@@ -73,9 +73,8 @@ fail:
     return NULL;
 }
 
-void circbuf_destroy(circbuf_t* cbuf_opq)
+void circbuf_destroy(circbuf_t* cbuf)
 {
-    circbuf_t_ *cbuf = (circbuf_t_*)cbuf_opq;
     pthread_mutex_destroy(&cbuf->rlock);
     pthread_mutex_destroy(&cbuf->wlock);
     pthread_cond_destroy(&cbuf->rcond);
@@ -84,37 +83,32 @@ void circbuf_destroy(circbuf_t* cbuf_opq)
     free(cbuf);
 }
 
-size_t circbuf_get_size(const circbuf_t* cbuf_opq)
+size_t circbuf_get_size(const circbuf_t* cbuf)
 {
-    circbuf_t_ *cbuf = (circbuf_t_*)cbuf_opq;
     return cbuf->size;
 }
 
-size_t circbuf_get_length(const circbuf_t* cbuf_opq)
+size_t circbuf_get_length(const circbuf_t* cbuf)
 {
-    circbuf_t_ *cbuf = (circbuf_t_*)cbuf_opq;
     size_t roff = cbuf->roff;
     size_t woff = cbuf->woff;
     if (woff >= roff) return woff - roff;
     return cbuf->size - roff + woff;
 }
 
-int circbuf_is_read_closed(const circbuf_t* cbuf_opq)
+int circbuf_is_read_closed(const circbuf_t* cbuf)
 {
-    circbuf_t_ *cbuf = (circbuf_t_*)cbuf_opq;
     return cbuf->rdone;
 }
 
-int circbuf_is_write_closed(const circbuf_t* cbuf_opq)
+int circbuf_is_write_closed(const circbuf_t* cbuf)
 {
-    circbuf_t_ *cbuf = (circbuf_t_*)cbuf_opq;
     return cbuf->wdone;
 }
 
 static
-size_t circbuf_read_some_(const void *cbuf_data, size_t cbuf_size,
-                          void *buf, size_t buf_len,
-                          size_t *roffp, size_t woff)
+size_t read_some_(const void *cbuf_data, size_t cbuf_size, void *buf,
+                  size_t buf_len, size_t *roffp, size_t woff)
 {
     size_t avail;
 
@@ -149,9 +143,8 @@ size_t circbuf_read_some_(const void *cbuf_data, size_t cbuf_size,
     return avail + woff;
 }
 
-size_t circbuf_read_some(circbuf_t *cbuf_opq, void *buf, size_t buf_len)
+size_t circbuf_read_some(circbuf_t *cbuf, void *buf, size_t buf_len)
 {
-    circbuf_t_ *cbuf = (circbuf_t_*)cbuf_opq;
 
     /* cbuf->roff isn't volatile from the viewpoint of consumer, since it's the
      * only consumer. So, work on non-volatile local copy and update later. */
@@ -159,8 +152,7 @@ size_t circbuf_read_some(circbuf_t *cbuf_opq, void *buf, size_t buf_len)
     size_t read;
 
     /* Passing volatile cbuf->woff by value to freeze its value. */
-    read = circbuf_read_some_(cbuf->data, cbuf->size, buf, buf_len, &roff,
-                              cbuf->woff);
+    read = read_some_(cbuf->data, cbuf->size, buf, buf_len, &roff, cbuf->woff);
 
     /* Update cbuf->roff and signal producer. */
     pthread_mutex_lock(&cbuf->rlock);
@@ -170,9 +162,8 @@ size_t circbuf_read_some(circbuf_t *cbuf_opq, void *buf, size_t buf_len)
     return read;
 }
 
-size_t circbuf_read(circbuf_t *cbuf_opq, void *buf, size_t buf_len)
+size_t circbuf_read(circbuf_t *cbuf, void *buf, size_t buf_len)
 {
-    circbuf_t_ *cbuf = (circbuf_t_*)cbuf_opq;
     size_t read = 0;
 
     while (read < buf_len && (cbuf->roff != cbuf->woff || !cbuf->wdone)) {
@@ -181,15 +172,14 @@ size_t circbuf_read(circbuf_t *cbuf_opq, void *buf, size_t buf_len)
             pthread_cond_wait(&cbuf->wcond, &cbuf->wlock);
         }
         pthread_mutex_unlock(&cbuf->wlock);
-        read += circbuf_read_some(cbuf_opq, buf + read, buf_len - read);
+        read += circbuf_read_some(cbuf, buf + read, buf_len - read);
     }
     return read;
 }
 
-size_t circbuf_input_some(const circbuf_t *cbuf_opq, const void **buf,
+size_t circbuf_input_some(const circbuf_t *cbuf, const void **buf,
                           size_t buf_len)
 {
-    const circbuf_t_ *cbuf = (circbuf_t_*)cbuf_opq;
     size_t roff = cbuf->roff;
     size_t woff = cbuf->woff;
     *buf = cbuf->data + roff;
@@ -198,11 +188,10 @@ size_t circbuf_input_some(const circbuf_t *cbuf_opq, const void **buf,
              (woff - roff > buf_len ? buf_len : woff - roff));
 }
 
-size_t circbuf_dispose_some(circbuf_t *cbuf_opq, size_t len)
+size_t circbuf_dispose_some(circbuf_t *cbuf, size_t len)
 {
-    circbuf_t_ *cbuf = (circbuf_t_*)cbuf_opq;
     size_t roff;
-    size_t cbuf_len = circbuf_get_length(cbuf_opq);
+    size_t cbuf_len = circbuf_get_length(cbuf);
     len = (cbuf_len < len ? cbuf_len : len);
     roff = cbuf->roff + len;
     if (roff >= cbuf->size) {
@@ -217,9 +206,8 @@ size_t circbuf_dispose_some(circbuf_t *cbuf_opq, size_t len)
 }
 
 static
-size_t circbuf_write_some_(void *cbuf_data, size_t cbuf_size,
-                           const void *buf, size_t buf_len,
-                           size_t roff, size_t* woffp)
+size_t write_some_(void *cbuf_data, size_t cbuf_size, const void *buf,
+                   size_t buf_len, size_t roff, size_t* woffp)
 {
     size_t avail;
 
@@ -269,9 +257,8 @@ size_t circbuf_write_some_(void *cbuf_data, size_t cbuf_size,
     return avail + roff - 1;
 }
 
-size_t circbuf_write_some(circbuf_t *cbuf_opq, const void *buf, size_t buf_len)
+size_t circbuf_write_some(circbuf_t *cbuf, const void *buf, size_t buf_len)
 {
-    circbuf_t_ *cbuf = (circbuf_t_*)cbuf_opq;
 
     /* cbuf->roff isn't volatile from the viewpoint of consumer, since it's the
      * only consumer. So, work on non-volatile local copy and update later. */
@@ -279,8 +266,8 @@ size_t circbuf_write_some(circbuf_t *cbuf_opq, const void *buf, size_t buf_len)
     size_t written;
 
     /* Passing volatile cbuf->roff by value to freeze its value. */
-    written = circbuf_write_some_(cbuf->data, cbuf->size, buf, buf_len,
-                                  cbuf->roff, &woff);
+    written = write_some_(cbuf->data, cbuf->size, buf, buf_len, cbuf->roff,
+                          &woff);
 
     /* Update cbuf->woff and signal consumer. */
     pthread_mutex_lock(&cbuf->wlock);
@@ -290,9 +277,8 @@ size_t circbuf_write_some(circbuf_t *cbuf_opq, const void *buf, size_t buf_len)
     return written;
 }
 
-size_t circbuf_write(circbuf_t *cbuf_opq, const void *buf, size_t buf_len)
+size_t circbuf_write(circbuf_t *cbuf, const void *buf, size_t buf_len)
 {
-    circbuf_t_ *cbuf = (circbuf_t_*)cbuf_opq;
     size_t written = 0;
 
     if (cbuf->rdone) {
@@ -307,16 +293,15 @@ size_t circbuf_write(circbuf_t *cbuf_opq, const void *buf, size_t buf_len)
         }
         pthread_mutex_unlock(&cbuf->rlock);
         if (!cbuf->rdone) {
-            written += circbuf_write_some(cbuf_opq, buf + written,
+            written += circbuf_write_some(cbuf, buf + written,
                                           buf_len - written);
         }
     }
     return written;
 }
 
-int circbuf_close_read(circbuf_t *cbuf_opq)
+int circbuf_close_read(circbuf_t *cbuf)
 {
-    circbuf_t_ *cbuf = (circbuf_t_*)cbuf_opq;
 
     if (cbuf->rdone) {
         return -1;
@@ -330,9 +315,8 @@ int circbuf_close_read(circbuf_t *cbuf_opq)
     return 0;
 }
 
-int circbuf_close_write(circbuf_t *cbuf_opq)
+int circbuf_close_write(circbuf_t *cbuf)
 {
-    circbuf_t_ *cbuf = (circbuf_t_*)cbuf_opq;
 
     if (cbuf->wdone) {
         return -1;
