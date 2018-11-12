@@ -382,6 +382,23 @@ void* serial_write(void* argument)
     }
 }
 
+void* serial_write2(void* argument)
+{
+    int (*continue_callback)() = argument;
+    size_t step;
+    size_t written;
+    while(1)
+    {
+        step = continue_callback();
+        if (!step || circbuf_is_read_closed(cbuf)) {
+            ck_assert(circbuf_close_write(cbuf) == 0);
+            return NULL;
+        }
+        written = data_write2(step);
+        ck_assert(written == step || circbuf_is_read_closed(cbuf));
+    }
+}
+
 size_t normal_consumer_step()
 {
     size_t step = BUFFER_SIZE / 10;
@@ -531,6 +548,8 @@ size_t early_close_producer_step()
     END_TEST
 #define CONCURRENT_TEST(...) CONCURRENT_TEST2(__VA_ARGS__, 0, 0)
 
+/* Tests for circbuf_read/circbuf_write */
+
 CONCURRENT_TEST(test_concurrent_normal, serial_read, serial_write,
                 normal_consumer_step, normal_producer_step)
 
@@ -553,6 +572,8 @@ CONCURRENT_TEST(test_concurrent_early_consumer_close, serial_read, serial_write,
 CONCURRENT_TEST(test_concurrent_early_producer_close, serial_read, serial_write,
                 normal_consumer_step, early_close_producer_step, (void)0,
                 EARLY_CLOSE_THRESHOLD)
+
+/* Tests for circbuf_input/circbuf_write */
 
 CONCURRENT_TEST(test_concurrent_normal_input, serial_input, serial_write,
                 normal_consumer_step, normal_producer_step)
@@ -577,12 +598,41 @@ CONCURRENT_TEST(test_concurrent_early_producer_close_input, serial_input,
                 serial_write, normal_consumer_step, early_close_producer_step,
                 (void)0, EARLY_CLOSE_THRESHOLD)
 
+/* Tests for circbuf_read/circbuf_write2 */
+
+CONCURRENT_TEST(test_concurrent_normal_write2, serial_read, serial_write2,
+                normal_consumer_step, normal_producer_step)
+
+CONCURRENT_TEST(test_concurrent_slow_consumer_write2, serial_read, serial_write2,
+                slow_consumer_step, normal_producer_step)
+
+CONCURRENT_TEST(test_concurrent_slow_producer_write2, serial_read, serial_write2,
+                normal_consumer_step, slow_producer_step)
+
+CONCURRENT_TEST(test_concurrent_slow_both_write2, serial_read, serial_write2,
+                slow_consumer_step, slow_producer_step)
+
+CONCURRENT_TEST(test_concurrent_variable_both_write2, serial_read, serial_write2,
+                variable_consumer_step, variable_producer_step)
+
+CONCURRENT_TEST(test_concurrent_early_consumer_close_write2, serial_read,
+                serial_write2, early_close_consumer_step, normal_producer_step,
+                (void)0, EARLY_CLOSE_THRESHOLD)
+
+CONCURRENT_TEST(test_concurrent_early_producer_close_write2, serial_read,
+                serial_write2, normal_consumer_step, early_close_producer_step,
+                (void)0, EARLY_CLOSE_THRESHOLD)
+
 /* Loop test: _i defined by libcheck to denote iteration number. */
 CONCURRENT_TEST(test_concurrent_random_both, serial_read, serial_write,
                 random_consumer_step, random_producer_step, seed_base = 2 * _i)
 
 /* Loop test: _i defined by libcheck to denote iteration number. */
 CONCURRENT_TEST(test_concurrent_random_both_input, serial_input, serial_write,
+                random_consumer_step, random_producer_step, seed_base = 2 * _i)
+
+/* Loop test: _i defined by libcheck to denote iteration number. */
+CONCURRENT_TEST(test_concurrent_random_both_write2, serial_read, serial_write2,
                 random_consumer_step, random_producer_step, seed_base = 2 * _i)
 
 Suite* circbuf_suite()
@@ -610,10 +660,13 @@ Suite* circbuf_suite()
     tcase_add_checked_fixture(tc, setup_global, teardown_global);
     tcase_add_test(tc, test_concurrent_normal);
     tcase_add_test(tc, test_concurrent_normal_input);
+    tcase_add_test(tc, test_concurrent_normal_write2);
     tcase_add_test(tc, test_concurrent_early_consumer_close);
     tcase_add_test(tc, test_concurrent_early_consumer_close_input);
+    tcase_add_test(tc, test_concurrent_early_consumer_close_write2);
     tcase_add_test(tc, test_concurrent_early_producer_close);
     tcase_add_test(tc, test_concurrent_early_producer_close_input);
+    tcase_add_test(tc, test_concurrent_early_producer_close_write2);
     suite_add_tcase(s, tc);
 
     tc = tcase_create("Slow Concurrent Tests");
@@ -621,12 +674,16 @@ Suite* circbuf_suite()
     tcase_add_checked_fixture(tc, setup_global, teardown_global);
     tcase_add_test(tc, test_concurrent_slow_consumer);
     tcase_add_test(tc, test_concurrent_slow_consumer_input);
+    tcase_add_test(tc, test_concurrent_slow_consumer_write2);
     tcase_add_test(tc, test_concurrent_slow_producer);
     tcase_add_test(tc, test_concurrent_slow_producer_input);
+    tcase_add_test(tc, test_concurrent_slow_producer_write2);
     tcase_add_test(tc, test_concurrent_slow_both);
     tcase_add_test(tc, test_concurrent_slow_both_input);
+    tcase_add_test(tc, test_concurrent_slow_both_write2);
     tcase_add_test(tc, test_concurrent_variable_both);
     tcase_add_test(tc, test_concurrent_variable_both_input);
+    tcase_add_test(tc, test_concurrent_variable_both_write2);
     suite_add_tcase(s, tc);
 
     tc = tcase_create("Fuzzy Concurrent Tests");
@@ -634,6 +691,7 @@ Suite* circbuf_suite()
     tcase_add_checked_fixture(tc, setup_global, teardown_global);
     tcase_add_loop_test(tc, test_concurrent_random_both, 0, 100);
     tcase_add_loop_test(tc, test_concurrent_random_both_input, 0, 100);
+    tcase_add_loop_test(tc, test_concurrent_random_both_write2, 0, 100);
     suite_add_tcase(s, tc);
 
     return s;
