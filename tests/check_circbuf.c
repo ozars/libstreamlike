@@ -21,25 +21,8 @@ size_t roffset_next;
 size_t woffset;
 unsigned int seed_base;
 
-int verify_read(size_t len)
-{
-    if(!memcmp(buf, data + roffset, len)) {
-        return 1;
-    }
-    size_t i;
-    for (i = 0; i < len; i++)
-    {
-        if (buf[i] != data[roffset + i]) {
-            return 0;
-        }
-    }
-    return 1;
-}
-
-int verify_input(size_t len)
-{
-    return !memcmp(pbuf, data + roffset, len);
-}
+#define ck_verify_read_(len) ck_assert_mem_eq(buf, data + roffset, len)
+#define ck_verify_input_(len) ck_assert_mem_eq(pbuf, data + roffset, len)
 
 size_t data_read(size_t len)
 {
@@ -72,7 +55,7 @@ size_t data_input_some(size_t len)
 size_t data_write(size_t len)
 {
     size_t written;
-    ck_assert(woffset + len <= DATA_SIZE);
+    ck_assert_uint_le(woffset + len, DATA_SIZE);
     written = circbuf_write(cbuf, data + woffset, len);
     woffset += written;
     return written;
@@ -116,38 +99,38 @@ void teardown_global()
 
 START_TEST(test_sequential)
 {
-    ck_assert(data_write(50) == 50);
-    ck_assert(data_read(50) == 50);
-    ck_assert(verify_read(50));
+    ck_assert_uint_eq(data_write(50), 50);
+    ck_assert_uint_eq(data_read(50), 50);
+    ck_verify_read_(50);
 
-    ck_assert(data_write(50) == 50);
-    ck_assert(data_read_some(60) == 50);
-    ck_assert(verify_read(50));
-    ck_assert(data_read_some(60) == 0);
+    ck_assert_uint_eq(data_write(50), 50);
+    ck_assert_uint_eq(data_read_some(60), 50);
+    ck_verify_read_(50);
+    ck_assert_uint_eq(data_read_some(60), 0);
 
-    ck_assert(data_write(50) == 50);
-    ck_assert(data_dispose(30) == 30);
-    ck_assert(data_read_some(10) == 10);
-    ck_assert(verify_read(10));
-    ck_assert(data_read_some(20) == 10);
-    ck_assert(verify_read(10));
+    ck_assert_uint_eq(data_write(50), 50);
+    ck_assert_uint_eq(data_dispose(30), 30);
+    ck_assert_uint_eq(data_read_some(10), 10);
+    ck_verify_read_(10);
+    ck_assert_uint_eq(data_read_some(20), 10);
+    ck_verify_read_(10);
 
-    ck_assert(data_write(50) == 50);
-    ck_assert(data_input_some(50) == 50);
-    ck_assert(verify_input(50));
-    ck_assert(data_input_some(50) == 50);
-    ck_assert(verify_input(50));
-    ck_assert(data_input_some(60) == 50);
-    ck_assert(verify_input(50));
-    ck_assert(data_dispose(30) == 30);
-    ck_assert(data_dispose(30) == 20);
-    ck_assert(data_input_some(60) == 0);
-    ck_assert(data_read_some(60) == 0);
+    ck_assert_uint_eq(data_write(50), 50);
+    ck_assert_uint_eq(data_input_some(50), 50);
+    ck_verify_input_(50);
+    ck_assert_uint_eq(data_input_some(50), 50);
+    ck_verify_input_(50);
+    ck_assert_uint_eq(data_input_some(60), 50);
+    ck_verify_input_(50);
+    ck_assert_uint_eq(data_dispose(30), 30);
+    ck_assert_uint_eq(data_dispose(30), 20);
+    ck_assert_uint_eq(data_input_some(60), 0);
+    ck_assert_uint_eq(data_read_some(60), 0);
 
-    ck_assert(data_write(50) == 50);
-    ck_assert(data_read_some(60) == 50);
-    ck_assert(verify_read(50));
-    ck_assert(data_read_some(60) == 0);
+    ck_assert_uint_eq(data_write(50), 50);
+    ck_assert_uint_eq(data_read_some(60), 50);
+    ck_verify_read_(50);
+    ck_assert_uint_eq(data_read_some(60), 0);
 }
 END_TEST
 
@@ -155,10 +138,10 @@ START_TEST(test_sequential_fill)
 {
     size_t whole_buffer_size = BUFFER_SIZE;
 
-    ck_assert(data_write(whole_buffer_size) == whole_buffer_size);
-    ck_assert(data_read(whole_buffer_size) == whole_buffer_size);
-    ck_assert(verify_read(whole_buffer_size));
-    ck_assert(data_read_some(whole_buffer_size) == 0);
+    ck_assert_uint_eq(data_write(whole_buffer_size), whole_buffer_size);
+    ck_assert_uint_eq(data_read(whole_buffer_size), whole_buffer_size);
+    ck_verify_read_(whole_buffer_size);
+    ck_assert_uint_eq(data_read_some(whole_buffer_size), 0);
 }
 END_TEST
 
@@ -172,17 +155,18 @@ START_TEST(test_sequential_read_around)
     little_more = 3;
     some_more = 7;
 
-    ck_assert(data_write(almost_until_end) == almost_until_end);
-    ck_assert(data_read(almost_until_end) == almost_until_end);
-    ck_assert(verify_read(almost_until_end));
-    ck_assert(data_read_some(almost_until_end) == 0);
+    ck_assert_uint_eq(data_write(almost_until_end), almost_until_end);
+    ck_assert_uint_eq(data_read(almost_until_end), almost_until_end);
+    ck_verify_read_(almost_until_end);
+    ck_assert_uint_eq(data_read_some(almost_until_end), 0);
 
-    ck_assert(data_write(little_more + some_more) == little_more + some_more);
-    ck_assert(data_read(little_more) == little_more);
-    ck_assert(verify_read(little_more));
-    ck_assert(data_read(some_more) == some_more);
-    ck_assert(verify_read(some_more));
-    ck_assert(data_read_some(some_more) == 0);
+    ck_assert_uint_eq(data_write(little_more + some_more),
+                      little_more + some_more);
+    ck_assert_uint_eq(data_read(little_more), little_more);
+    ck_verify_read_(little_more);
+    ck_assert_uint_eq(data_read(some_more), some_more);
+    ck_verify_read_(some_more);
+    ck_assert_uint_eq(data_read_some(some_more), 0);
 }
 END_TEST
 
@@ -196,18 +180,19 @@ START_TEST(test_sequential_dispose_around)
     little_more = 3;
     some_more = 7;
 
-    ck_assert(data_write(almost_until_end) == almost_until_end);
-    ck_assert(data_dispose(almost_until_end) == almost_until_end);
-    ck_assert(data_read_some(almost_until_end) == 0);
+    ck_assert_uint_eq(data_write(almost_until_end), almost_until_end);
+    ck_assert_uint_eq(data_dispose(almost_until_end), almost_until_end);
+    ck_assert_uint_eq(data_read_some(almost_until_end), 0);
 
-    ck_assert(data_write(little_more + some_more) == little_more + some_more);
-    ck_assert(data_dispose(little_more) == little_more);
-    ck_assert(data_dispose(some_more) == some_more);
-    ck_assert(data_read_some(some_more) == 0);
+    ck_assert_uint_eq(data_write(little_more + some_more),
+                      little_more + some_more);
+    ck_assert_uint_eq(data_dispose(little_more), little_more);
+    ck_assert_uint_eq(data_dispose(some_more), some_more);
+    ck_assert_uint_eq(data_read_some(some_more), 0);
 
-    ck_assert(data_write(little_more) == little_more);
-    ck_assert(data_read(little_more) == little_more);
-    ck_assert(verify_read(little_more));
+    ck_assert_uint_eq(data_write(little_more), little_more);
+    ck_assert_uint_eq(data_read(little_more), little_more);
+    ck_verify_read_(little_more);
 }
 END_TEST
 
@@ -225,11 +210,32 @@ START_TEST(test_sequential_input_around)
     little_more = margin - span;
     some_more = margin + span;
 
-    ck_assert(data_write(almost_until_end) == almost_until_end);
-    ck_assert(data_input_some(almost_until_end) == almost_until_end);
-    ck_assert(verify_input(almost_until_end));
-    ck_assert(data_dispose(almost_until_end) == almost_until_end);
-    ck_assert(data_read_some(almost_until_end) == 0);
+    ck_assert_uint_eq(data_write(almost_until_end), almost_until_end);
+    ck_assert_uint_eq(data_input_some(almost_until_end), almost_until_end);
+    ck_verify_input_(almost_until_end);
+    ck_assert_uint_eq(data_dispose(almost_until_end), almost_until_end);
+    ck_assert_uint_eq(data_read_some(almost_until_end), 0);
+
+    ck_assert_uint_eq(data_write(little_more + some_more),
+                      little_more + some_more);
+    ck_assert_uint_eq(data_input_some(little_more), little_more);
+    ck_verify_input_(little_more);
+    ck_assert_uint_eq(data_dispose(little_more), little_more);
+
+    ck_assert_uint_eq(data_input_some(some_more), span);
+    ck_verify_input_(span);
+    ck_assert_uint_eq(data_dispose(span), span);
+
+    ck_assert_uint_eq(data_input_some(some_more - span), some_more - span);
+    ck_verify_input_(some_more - span);
+    ck_assert_uint_eq(data_dispose(some_more - span), some_more - span);
+    ck_assert_uint_eq(data_read_some(some_more), 0);
+
+    ck_assert_uint_eq(data_write(little_more), little_more);
+    ck_assert_uint_eq(data_read(little_more), little_more);
+    ck_verify_read_(little_more);
+}
+END_TEST
 
     ck_assert(data_write(little_more + some_more) == little_more + some_more);
     ck_assert(data_input_some(little_more) == little_more);
@@ -266,7 +272,7 @@ void* serial_read(void* argument)
         }
         read = data_read(step);
         ck_assert(read == step || circbuf_is_write_closed(cbuf));
-        ck_assert(verify_read(read));
+        ck_verify_read_(read);
     }
 }
 
@@ -284,9 +290,9 @@ void* serial_input(void* argument)
             return NULL;
         }
         input = data_input_some(step);
-        ck_assert(input <= step);
-        ck_assert(verify_input(input));
-        ck_assert(data_dispose(input) == input);
+        ck_assert_uint_le(input, step);
+        ck_verify_input_(input);
+        ck_assert_uint_eq(data_dispose(input), input);
     }
 }
 
@@ -448,9 +454,9 @@ size_t early_close_producer_step()
         ck_assert(pthread_join(consumer_thread, NULL) == 0); \
         \
         if (bytes_count) { \
-            ck_assert(roffset_next == bytes_count); \
+            ck_assert_uint_eq(roffset_next, bytes_count); \
         } else { \
-            ck_assert(roffset_next == DATA_SIZE); \
+            ck_assert_uint_eq(roffset_next, DATA_SIZE); \
         } \
     } \
     END_TEST
