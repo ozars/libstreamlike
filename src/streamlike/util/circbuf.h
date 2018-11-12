@@ -2,6 +2,9 @@
 #define CIRCBUF_H
 #include <pthread.h>
 
+typedef
+size_t (*circbuf_write_cb_t)(void *context, void *buf, size_t buf_len);
+
 typedef struct circbuf_s circbuf_t;
 
 circbuf_t* circbuf_init(size_t buf_len);
@@ -25,6 +28,10 @@ size_t circbuf_dispose(circbuf_t *cbuf, size_t len);
 
 size_t circbuf_write_some(circbuf_t *cbuf, const void *buf, size_t buf_len);
 size_t circbuf_write(circbuf_t *cbuf, const void *buf, size_t buf_len);
+size_t circbuf_write_some2(circbuf_t *cbuf, circbuf_write_cb_t writer,
+                           void *context, size_t write_len, char *eof_reached);
+size_t circbuf_write2(circbuf_t *cbuf, circbuf_write_cb_t writer, void *context,
+                      size_t write_len);
 
 int circbuf_close_read(circbuf_t *cbuf);
 int circbuf_close_write(circbuf_t *cbuf);

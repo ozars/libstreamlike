@@ -300,6 +300,120 @@ size_t circbuf_write(circbuf_t *cbuf, const void *buf, size_t buf_len)
     return written;
 }
 
+static
+size_t write_some2_(void *cbuf_data, size_t cbuf_size,
+                    circbuf_write_cb_t writer, void *context, size_t write_len,
+                    size_t roff, size_t* woffp, char *eof_reached)
+{
+    /* Since this version of write will fetch from a user-provided feedback,
+     * there is a chance that it will be fed less number bytes than it needs,
+     * meaning that either eof is reached or some error happened in user
+     * provided input. Therefore, it should set the status in eof_reached
+     * argument before returning, to indicate shortage is due to user-provided
+     * input, not due to buffer being full at the moment. */
+    #define WRITE_AND_RETURN_IF_EOF_(there, length) \
+        written = writer(context, there, length); \
+        *woffp += written; \
+        *woffp %= cbuf_size; \
+        total_written += written; \
+        if (total_written < length) { \
+            if (*eof_reached) { \
+                *eof_reached = 1; \
+            } \
+            return total_written; \
+        }
+    #define WRITE_AND_RETURN_(there, length) \
+        WRITE_AND_RETURN_IF_EOF_(there, length); \
+        return total_written;
+
+    size_t avail;
+    size_t written;
+    size_t total_written = 0;
+
+    /* If buffer is full. */
+    if (*woffp + 1 == roff || (*woffp == cbuf_size - 1 && roff == 0)) {
+        return 0;
+    }
+    /* If woff is before roff. */
+    if (*woffp < roff) {
+        avail =  roff - *woffp - 1;
+        /* If there is enough data before roff. */
+        if (avail >= write_len) {
+            WRITE_AND_RETURN_(cbuf_data + *woffp, write_len);
+        }
+        /* Else, use whatever there is. */
+        WRITE_AND_RETURN_(cbuf_data + *woffp, avail);
+    }
+    avail = cbuf_size - *woffp;
+    /* Else if there is enough data until the end. */
+    if (avail > write_len) {
+        WRITE_AND_RETURN_(cbuf_data + *woffp, write_len);
+    }
+    /* If read offset is at the beginning, copy whatever there is until the end
+     * except last byte. */
+    if (roff == 0) {
+        WRITE_AND_RETURN_(cbuf_data + *woffp, avail - 1);
+    }
+    /* Else copy whatever there is until the end. */
+    WRITE_AND_RETURN_IF_EOF_(cbuf_data + *woffp, avail);
+    /* Check if there is enough data from beginning up to roff. */
+    if (roff > write_len - avail) {
+        WRITE_AND_RETURN_(cbuf_data, write_len - avail);
+    }
+    /* Else copy whatever there is up to roff. */
+    WRITE_AND_RETURN_(cbuf_data, roff - 1);
+
+    #undef WRITE_AND_RETURN_IF_EOF_
+    #undef WRITE_AND_RETURN_
+}
+
+size_t circbuf_write_some2(circbuf_t *cbuf, circbuf_write_cb_t writer,
+                           void *context, size_t write_len, char *eof_reached)
+{
+    /* cbuf->woff isn't volatile from the viewpoint of consumer, since it's the
+     * only producer modifying it. So, work on non-volatile copy and update the
+     * original later. */
+    size_t woff = cbuf->woff;
+    size_t written;
+
+    /* Passing volatile cbuf->roff by value to freeze its value. */
+    written = write_some2_(cbuf->data, cbuf->size, writer, context, write_len,
+                           cbuf->roff, &woff, eof_reached);
+
+    /* Update cbuf->woff and signal consumer. */
+    pthread_mutex_lock(&cbuf->wlock);
+    cbuf->woff = woff;
+    pthread_cond_signal(&cbuf->wcond);
+    pthread_mutex_unlock(&cbuf->wlock);
+    return written;
+
+}
+
+size_t circbuf_write2(circbuf_t *cbuf, circbuf_write_cb_t writer, void *context,
+                      size_t write_len)
+{
+    char eof_reached = 0;
+    size_t written = 0;
+
+    if (cbuf->rdone) {
+        return 0;
+    }
+    while (written < write_len && !cbuf->rdone && !eof_reached) {
+        pthread_mutex_lock(&cbuf->rlock);
+        while ((cbuf->woff + 1 == cbuf->roff
+                    || (cbuf->woff + 1 == cbuf->size && cbuf->roff == 0))
+               && !cbuf->rdone) {
+            pthread_cond_wait(&cbuf->rcond, &cbuf->rlock);
+        }
+        pthread_mutex_unlock(&cbuf->rlock);
+        if (!cbuf->rdone) {
+            written += circbuf_write_some2(cbuf, writer, context,
+                                           write_len - written, &eof_reached);
+        }
+    }
+    return written;
+}
+
 int circbuf_close_read(circbuf_t *cbuf)
 {
 
