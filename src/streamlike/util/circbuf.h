@@ -21,6 +21,9 @@ size_t circbuf_input_some(const circbuf_t *cbuf, const void **buf,
                           size_t buf_len);
 size_t circbuf_dispose_some(circbuf_t *cbuf, size_t len);
 /* TODO:
+size_t circbuf_dispose_all(circbuf_t *cbuf);
+int circbuf_pause_write(circbuf_t *cbuf);
+int circbuf_unpause_write(circbuf_t *cbuf);
 size_t circbuf_input(const circbuf_t *cbuf, const void **buf, size_t buf_len,
                      const void **buf2, size_t buf_len2);
 size_t circbuf_dispose(circbuf_t *cbuf, size_t len);

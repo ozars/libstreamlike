@@ -147,7 +147,8 @@ size_t circbuf_read_some(circbuf_t *cbuf, void *buf, size_t buf_len)
 {
 
     /* cbuf->roff isn't volatile from the viewpoint of consumer, since it's the
-     * only consumer. So, work on non-volatile local copy and update later. */
+     * only consumer modifying it. So, work on non-volatile copy and update the
+     * original later. */
     size_t roff = cbuf->roff;
     size_t read;
 
@@ -260,8 +261,9 @@ size_t write_some_(void *cbuf_data, size_t cbuf_size, const void *buf,
 size_t circbuf_write_some(circbuf_t *cbuf, const void *buf, size_t buf_len)
 {
 
-    /* cbuf->roff isn't volatile from the viewpoint of consumer, since it's the
-     * only consumer. So, work on non-volatile local copy and update later. */
+    /* cbuf->woff isn't volatile from the viewpoint of consumer, since it's the
+     * only producer modifying it. So, work on non-volatile copy and update the
+     * original later. */
     size_t woff = cbuf->woff;
     size_t written;
 
