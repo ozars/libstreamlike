@@ -64,6 +64,7 @@ size_t data_write(size_t len)
 size_t data_write_cb(void *context, void *buf, size_t buf_len)
 {
     memcpy(buf, data + woffset, buf_len);
+    woffset += buf_len;
     return buf_len;
 }
 
@@ -72,7 +73,6 @@ size_t data_write2(size_t len)
     size_t written;
     ck_assert_uint_le(woffset + len, DATA_SIZE);
     written = circbuf_write2(cbuf, data_write_cb, NULL, len);
-    woffset += written;
     return written;
 }
 

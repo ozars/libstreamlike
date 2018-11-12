@@ -318,8 +318,8 @@ size_t write_some2_(void *cbuf_data, size_t cbuf_size,
         *woffp += written; \
         *woffp %= cbuf_size; \
         total_written += written; \
-        if (total_written < length) { \
-            if (*eof_reached) { \
+        if (written < length) { \
+            if (eof_reached) { \
                 *eof_reached = 1; \
             } \
             return total_written; \
