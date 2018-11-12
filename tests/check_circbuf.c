@@ -630,6 +630,7 @@ Suite* circbuf_suite()
     suite_add_tcase(s, tc);
 
     tc = tcase_create("Fuzzy Concurrent Tests");
+    tcase_set_tags(tc, "slow");
     tcase_add_checked_fixture(tc, setup_global, teardown_global);
     tcase_add_loop_test(tc, test_concurrent_random_both, 0, 100);
     tcase_add_loop_test(tc, test_concurrent_random_both_input, 0, 100);

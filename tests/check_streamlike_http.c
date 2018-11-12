@@ -12,7 +12,7 @@
 
 #include "streamlike/http.h"
 
-#define TEST_SERVER_PORT 9000
+#define TEST_SERVER_PORT 9012
 #define TEST_DATA_LENGTH (1024*1024)
 
 #define STR(s) STR_(s)
