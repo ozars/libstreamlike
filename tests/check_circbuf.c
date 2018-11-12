@@ -61,6 +61,21 @@ size_t data_write(size_t len)
     return written;
 }
 
+size_t data_write_cb(void *context, void *buf, size_t buf_len)
+{
+    memcpy(buf, data + woffset, buf_len);
+    return buf_len;
+}
+
+size_t data_write2(size_t len)
+{
+    size_t written;
+    ck_assert_uint_le(woffset + len, DATA_SIZE);
+    written = circbuf_write2(cbuf, data_write_cb, NULL, len);
+    woffset += written;
+    return written;
+}
+
 size_t data_dispose(size_t len)
 {
     size_t disposed;
@@ -237,23 +252,77 @@ START_TEST(test_sequential_input_around)
 }
 END_TEST
 
-    ck_assert(data_write(little_more + some_more) == little_more + some_more);
-    ck_assert(data_input_some(little_more) == little_more);
-    ck_assert(verify_input(little_more));
-    ck_assert(data_dispose(little_more) == little_more);
+START_TEST(test_sequential_write2)
+{
+    ck_assert_uint_eq(data_write2(50), 50);
+    ck_assert_uint_eq(data_read(50), 50);
+    ck_verify_read_(50);
 
-    ck_assert(data_input_some(some_more) == span);
-    ck_assert(verify_input(span));
-    ck_assert(data_dispose(span) == span);
+    ck_assert_uint_eq(data_write2(50), 50);
+    ck_assert_uint_eq(data_read_some(60), 50);
+    ck_verify_read_(50);
+    ck_assert_uint_eq(data_read_some(60), 0);
 
-    ck_assert(data_input_some(some_more - span) == some_more - span);
-    ck_assert(verify_input(some_more - span));
-    ck_assert(data_dispose(some_more - span) == some_more - span);
-    ck_assert(data_read_some(some_more) == 0);
+    ck_assert_uint_eq(data_write2(50), 50);
+    ck_assert_uint_eq(data_dispose(30), 30);
+    ck_assert_uint_eq(data_read_some(10), 10);
+    ck_verify_read_(10);
+    ck_assert_uint_eq(data_read_some(20), 10);
+    ck_verify_read_(10);
 
-    ck_assert(data_write(little_more) == little_more);
-    ck_assert(data_read(little_more) == little_more);
-    ck_assert(verify_read(little_more));
+    ck_assert_uint_eq(data_write2(50), 50);
+    ck_assert_uint_eq(data_input_some(50), 50);
+    ck_verify_input_(50);
+    ck_assert_uint_eq(data_input_some(50), 50);
+    ck_verify_input_(50);
+    ck_assert_uint_eq(data_input_some(60), 50);
+    ck_verify_input_(50);
+    ck_assert_uint_eq(data_dispose(30), 30);
+    ck_assert_uint_eq(data_dispose(30), 20);
+    ck_assert_uint_eq(data_input_some(60), 0);
+    ck_assert_uint_eq(data_read_some(60), 0);
+
+    ck_assert_uint_eq(data_write2(50), 50);
+    ck_assert_uint_eq(data_read_some(60), 50);
+    ck_verify_read_(50);
+    ck_assert_uint_eq(data_read_some(60), 0);
+}
+END_TEST
+
+START_TEST(test_sequential_fill_write2)
+{
+    size_t whole_buffer_size = BUFFER_SIZE;
+
+    ck_assert_uint_eq(data_write2(whole_buffer_size), whole_buffer_size);
+    ck_assert_uint_eq(data_read(whole_buffer_size), whole_buffer_size);
+    ck_verify_read_(whole_buffer_size);
+    ck_assert_uint_eq(data_read_some(whole_buffer_size), 0);
+}
+END_TEST
+
+START_TEST(test_sequential_read_around_write2)
+{
+
+    size_t almost_until_end;
+    size_t little_more;
+    size_t some_more;
+
+    almost_until_end = circbuf_get_size(cbuf) - 5;
+    little_more = 3;
+    some_more = 7;
+
+    ck_assert_uint_eq(data_write2(almost_until_end), almost_until_end);
+    ck_assert_uint_eq(data_read(almost_until_end), almost_until_end);
+    ck_verify_read_(almost_until_end);
+    ck_assert_uint_eq(data_read_some(almost_until_end), 0);
+
+    ck_assert_uint_eq(data_write2(little_more + some_more),
+                      little_more + some_more);
+    ck_assert_uint_eq(data_read(little_more), little_more);
+    ck_verify_read_(little_more);
+    ck_assert_uint_eq(data_read(some_more), some_more);
+    ck_verify_read_(some_more);
+    ck_assert_uint_eq(data_read_some(some_more), 0);
 }
 END_TEST
 
@@ -532,6 +601,9 @@ Suite* circbuf_suite()
     tcase_add_test(tc, test_sequential_read_around);
     tcase_add_test(tc, test_sequential_dispose_around);
     tcase_add_test(tc, test_sequential_input_around);
+    tcase_add_test(tc, test_sequential_write2);
+    tcase_add_test(tc, test_sequential_fill_write2);
+    tcase_add_test(tc, test_sequential_read_around_write2);
     suite_add_tcase(s, tc);
 
     tc = tcase_create("Concurrent Tests");
