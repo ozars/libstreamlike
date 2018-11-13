@@ -68,11 +68,30 @@ size_t data_write_cb(void *context, void *buf, size_t buf_len)
     return buf_len;
 }
 
+size_t data_write_eof_cb(void *context, void *buf, size_t buf_len)
+{
+    if (woffset >= EARLY_CLOSE_THRESHOLD) {
+        return 0;
+    }
+    if (woffset + buf_len >= EARLY_CLOSE_THRESHOLD) {
+        buf_len = EARLY_CLOSE_THRESHOLD - woffset;
+    }
+    return data_write_cb(context, buf, buf_len);
+}
+
 size_t data_write2(size_t len)
 {
     size_t written;
     ck_assert_uint_le(woffset + len, DATA_SIZE);
     written = circbuf_write2(cbuf, data_write_cb, NULL, len);
+    return written;
+}
+
+size_t data_write2_eof(size_t len)
+{
+    size_t written;
+    ck_assert_uint_le(woffset + len, DATA_SIZE);
+    written = circbuf_write2(cbuf, data_write_eof_cb, NULL, len);
     return written;
 }
 
@@ -399,6 +418,29 @@ void* serial_write2(void* argument)
     }
 }
 
+void* serial_write2_eof(void* argument)
+{
+    int (*continue_callback)() = argument;
+    size_t step;
+    size_t written;
+    while(1)
+    {
+        step = continue_callback();
+        if (circbuf_is_read_closed(cbuf)) {
+            ck_assert(circbuf_close_write(cbuf) == 0);
+            return NULL;
+        }
+        written = data_write2_eof(step);
+        if (written < step) {
+            ck_assert_uint_eq(woffset, EARLY_CLOSE_THRESHOLD);
+            ck_assert(circbuf_close_write(cbuf) == 0);
+            return NULL;
+        } else {
+            ck_assert(written == step || circbuf_is_read_closed(cbuf));
+        }
+    }
+}
+
 size_t normal_consumer_step()
 {
     size_t step = BUFFER_SIZE / 10;
@@ -623,6 +665,10 @@ CONCURRENT_TEST(test_concurrent_early_producer_close_write2, serial_read,
                 serial_write2, normal_consumer_step, early_close_producer_step,
                 (void)0, EARLY_CLOSE_THRESHOLD)
 
+CONCURRENT_TEST(test_concurrent_normal_write2_eof, serial_read,
+                serial_write2_eof, normal_consumer_step, normal_producer_step,
+                (void)0, EARLY_CLOSE_THRESHOLD)
+
 /* Loop test: _i defined by libcheck to denote iteration number. */
 CONCURRENT_TEST(test_concurrent_random_both, serial_read, serial_write,
                 random_consumer_step, random_producer_step, seed_base = 2 * _i)
@@ -673,6 +719,8 @@ Suite* circbuf_suite()
     tcase_add_test(tc, test_concurrent_normal_write2);
     tcase_add_test(tc, test_concurrent_early_consumer_close_write2);
     tcase_add_test(tc, test_concurrent_early_producer_close_write2);
+
+    tcase_add_test(tc, test_concurrent_normal_write2_eof);
 
     suite_add_tcase(s, tc);
 
