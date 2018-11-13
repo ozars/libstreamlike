@@ -646,44 +646,55 @@ Suite* circbuf_suite()
 
     tc = tcase_create("Sequential Tests");
     tcase_add_checked_fixture(tc, setup_global, teardown_global);
+
     tcase_add_test(tc, test_sequential);
     tcase_add_test(tc, test_sequential_fill);
     tcase_add_test(tc, test_sequential_read_around);
     tcase_add_test(tc, test_sequential_dispose_around);
     tcase_add_test(tc, test_sequential_input_around);
+
     tcase_add_test(tc, test_sequential_write2);
     tcase_add_test(tc, test_sequential_fill_write2);
     tcase_add_test(tc, test_sequential_read_around_write2);
+
     suite_add_tcase(s, tc);
 
     tc = tcase_create("Concurrent Tests");
     tcase_add_checked_fixture(tc, setup_global, teardown_global);
+
     tcase_add_test(tc, test_concurrent_normal);
-    tcase_add_test(tc, test_concurrent_normal_input);
-    tcase_add_test(tc, test_concurrent_normal_write2);
     tcase_add_test(tc, test_concurrent_early_consumer_close);
-    tcase_add_test(tc, test_concurrent_early_consumer_close_input);
-    tcase_add_test(tc, test_concurrent_early_consumer_close_write2);
     tcase_add_test(tc, test_concurrent_early_producer_close);
+
+    tcase_add_test(tc, test_concurrent_normal_input);
+    tcase_add_test(tc, test_concurrent_early_consumer_close_input);
     tcase_add_test(tc, test_concurrent_early_producer_close_input);
+
+    tcase_add_test(tc, test_concurrent_normal_write2);
+    tcase_add_test(tc, test_concurrent_early_consumer_close_write2);
     tcase_add_test(tc, test_concurrent_early_producer_close_write2);
+
     suite_add_tcase(s, tc);
 
     tc = tcase_create("Slow Concurrent Tests");
     tcase_set_timeout(tc, SLOW_CONCURRENT_TEST_TIMEOUT);
     tcase_add_checked_fixture(tc, setup_global, teardown_global);
+
     tcase_add_test(tc, test_concurrent_slow_consumer);
-    tcase_add_test(tc, test_concurrent_slow_consumer_input);
-    tcase_add_test(tc, test_concurrent_slow_consumer_write2);
     tcase_add_test(tc, test_concurrent_slow_producer);
-    tcase_add_test(tc, test_concurrent_slow_producer_input);
-    tcase_add_test(tc, test_concurrent_slow_producer_write2);
     tcase_add_test(tc, test_concurrent_slow_both);
-    tcase_add_test(tc, test_concurrent_slow_both_input);
-    tcase_add_test(tc, test_concurrent_slow_both_write2);
     tcase_add_test(tc, test_concurrent_variable_both);
+
+    tcase_add_test(tc, test_concurrent_slow_consumer_input);
+    tcase_add_test(tc, test_concurrent_slow_producer_input);
+    tcase_add_test(tc, test_concurrent_slow_both_input);
     tcase_add_test(tc, test_concurrent_variable_both_input);
+
+    tcase_add_test(tc, test_concurrent_slow_consumer_write2);
+    tcase_add_test(tc, test_concurrent_slow_producer_write2);
+    tcase_add_test(tc, test_concurrent_slow_both_write2);
     tcase_add_test(tc, test_concurrent_variable_both_write2);
+
     suite_add_tcase(s, tc);
 
     tc = tcase_create("Fuzzy Concurrent Tests");
