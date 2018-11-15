@@ -58,12 +58,9 @@ circbuf_t* circbuf_init(size_t cbuf_size)
     }
     cbuf->rdone = 0;
     cbuf->wdone = 0;
-
-    /* Read offset and write offset. Don't confuse these with bob->ross. Common
-     * mistake. */
-    cbuf->woff = 0;
-    cbuf->roff = 0;
-    cbuf->size = cbuf_size;
+    cbuf->woff  = 0;
+    cbuf->roff  = 0;
+    cbuf->size  = cbuf_size;
 
     return (circbuf_t*)cbuf;
 
@@ -81,6 +78,14 @@ void circbuf_destroy(circbuf_t* cbuf)
     pthread_cond_destroy(&cbuf->wcond);
     free(cbuf->data);
     free(cbuf);
+}
+
+void circbuf_reset(circbuf_t *cbuf)
+{
+    cbuf->rdone = 0;
+    cbuf->wdone = 0;
+    cbuf->woff  = 0;
+    cbuf->roff  = 0;
 }
 
 size_t circbuf_get_size(const circbuf_t* cbuf)

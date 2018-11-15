@@ -9,6 +9,7 @@ typedef struct circbuf_s circbuf_t;
 
 circbuf_t* circbuf_init(size_t buf_len);
 void circbuf_destroy(circbuf_t* cbuf);
+void circbuf_reset(circbuf_t *cbuf);
 
 size_t circbuf_get_size(const circbuf_t* cbuf);
 size_t circbuf_get_length(const circbuf_t* cbuf);
