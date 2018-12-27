@@ -3,6 +3,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
+#include <pthread.h>
 
 struct circbuf_s
 {
@@ -375,7 +376,7 @@ size_t write_some2_(void *cbuf_data, size_t cbuf_size,
 }
 
 size_t circbuf_write_some2(circbuf_t *cbuf, circbuf_write_cb_t writer,
-                           void *context, size_t write_len, char *eof_reached)
+                           void *context, size_t len, char *eof)
 {
     /* cbuf->woff isn't volatile from the viewpoint of consumer, since it's the
      * only producer modifying it. So, work on non-volatile copy and update the
@@ -384,8 +385,8 @@ size_t circbuf_write_some2(circbuf_t *cbuf, circbuf_write_cb_t writer,
     size_t written;
 
     /* Passing volatile cbuf->roff by value to freeze its value. */
-    written = write_some2_(cbuf->data, cbuf->size, writer, context, write_len,
-                           cbuf->roff, &woff, eof_reached);
+    written = write_some2_(cbuf->data, cbuf->size, writer, context, len,
+                           cbuf->roff, &woff, eof);
 
     /* Update cbuf->woff and signal consumer. */
     pthread_mutex_lock(&cbuf->wlock);
@@ -397,15 +398,15 @@ size_t circbuf_write_some2(circbuf_t *cbuf, circbuf_write_cb_t writer,
 }
 
 size_t circbuf_write2(circbuf_t *cbuf, circbuf_write_cb_t writer, void *context,
-                      size_t write_len)
+                      size_t len)
 {
-    char eof_reached = 0;
+    char eof = 0;
     size_t written = 0;
 
     if (cbuf->rdone) {
         return 0;
     }
-    while (written < write_len && !cbuf->rdone && !eof_reached) {
+    while (written < len && !cbuf->rdone && !eof) {
         pthread_mutex_lock(&cbuf->rlock);
         while ((cbuf->woff + 1 == cbuf->roff
                     || (cbuf->woff + 1 == cbuf->size && cbuf->roff == 0))
@@ -414,8 +415,8 @@ size_t circbuf_write2(circbuf_t *cbuf, circbuf_write_cb_t writer, void *context,
         }
         pthread_mutex_unlock(&cbuf->rlock);
         if (!cbuf->rdone) {
-            written += circbuf_write_some2(cbuf, writer, context,
-                                           write_len - written, &eof_reached);
+            written += circbuf_write_some2(cbuf, writer, context, len - written,
+                                           &eof);
         }
     }
     return written;
