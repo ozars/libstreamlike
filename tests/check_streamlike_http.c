@@ -1,4 +1,3 @@
-#include <stdio.h>
 #include <stdlib.h>
 #include <strings.h>
 #include <check.h>
@@ -23,7 +22,6 @@ char test_data[TEST_DATA_LENGTH];
 void setup_global()
 {
     stream = sl_http_create(test_server_address(test_server));
-    fflush(stdout);
     ck_assert(stream);
 }
 
