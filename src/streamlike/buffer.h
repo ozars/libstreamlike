@@ -2,9 +2,12 @@
 #define STREAMLIKE_BUFFER_H
 
 #include "../streamlike.h"
+#define SL_BUFFER_DEFAULT_BUFFER_SIZE (1024 * 1024 * 1024)
+#define SL_BUFFER_DEFAULT_STEP_SIZE   (16 * 1024)
 
-streamlike_t* sl_buffer_create(streamlike_t* inner_stream, size_t buffer_size,
-                               size_t step_size);
+streamlike_t* sl_buffer_create(streamlike_t* inner_stream);
+streamlike_t* sl_buffer_create2(streamlike_t* inner_stream, size_t buffer_size,
+                                size_t step_size);
 int sl_buffer_destroy(streamlike_t *buffer_stream);
 
 int sl_buffer_threaded_fill_buffer(streamlike_t *buffer_stream);
@@ -13,8 +16,6 @@ int sl_buffer_close_buffer(streamlike_t *buffer_stream);
 
 size_t sl_buffer_read_cb(void *context, void *buffer, size_t len);
 size_t sl_buffer_input_cb(void *context, const void **buffer, size_t size);
-size_t sl_buffer_write_cb(void *context, const void *buffer, size_t size);
-int sl_buffer_flush_cb(void *context);
 int sl_buffer_seek_cb(void *context, off_t offset, int whence);
 off_t sl_buffer_tell_cb(void *context);
 int sl_buffer_eof_cb(void *context);
