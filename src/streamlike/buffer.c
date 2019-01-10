@@ -16,12 +16,11 @@
 #  define SL_BUFFER_LOG(...) ((void)0)
 # endif
 #endif
-
-#include "../streamlike.h"
 #include "buffer.h"
 
 #include <stdlib.h>
 #include <pthread.h>
+
 #include "util/circbuf.h"
 
 typedef struct sl_buffer_s
@@ -395,20 +394,73 @@ int sl_buffer_close_buffer(streamlike_t *buffer_stream)
     return 0;
 }
 
-size_t sl_buffer_read_cb(void *context, void *buffer, size_t len);
-size_t sl_buffer_input_cb(void *context, const void **buffer, size_t size);
-size_t sl_buffer_write_cb(void *context, const void *buffer, size_t size);
-int sl_buffer_flush_cb(void *context);
-int sl_buffer_seek_cb(void *context, off_t offset, int whence);
-off_t sl_buffer_tell_cb(void *context);
-int sl_buffer_eof_cb(void *context);
-int sl_buffer_error_cb(void *context);
-off_t sl_buffer_length_cb(void *context);
+size_t sl_buffer_read_cb(void *context, void *buffer, size_t len)
+{
+    return 0;
+}
 
-sl_seekable_t sl_buffer_seekable_cb(void *context);
-int sl_buffer_ckp_count_cb(void *context);
-const sl_ckp_t* sl_buffer_ckp_cb(void *context, int idx);
-off_t sl_buffer_ckp_offset_cb(void *context, const sl_ckp_t *ckp);
+size_t sl_buffer_input_cb(void *context, const void **buffer, size_t size)
+{
+    return 0;
+}
+
+size_t sl_buffer_write_cb(void *context, const void *buffer, size_t size)
+{
+    return 0;
+}
+
+int sl_buffer_flush_cb(void *context)
+{
+    return 0;
+}
+
+int sl_buffer_seek_cb(void *context, off_t offset, int whence)
+{
+    return 0;
+}
+
+off_t sl_buffer_tell_cb(void *context)
+{
+    return 0;
+}
+
+int sl_buffer_eof_cb(void *context)
+{
+    return 0;
+}
+int sl_buffer_error_cb(void *context)
+{
+    return 0;
+}
+
+off_t sl_buffer_length_cb(void *context)
+{
+    return 0;
+}
+
+
+sl_seekable_t sl_buffer_seekable_cb(void *context)
+{
+    return 0;
+}
+
+int sl_buffer_ckp_count_cb(void *context)
+{
+    return 0;
+}
+
+const sl_ckp_t* sl_buffer_ckp_cb(void *context, int idx)
+{
+    return NULL;
+}
+
+off_t sl_buffer_ckp_offset_cb(void *context, const sl_ckp_t *ckp)
+{
+    return 0;
+}
+
 size_t sl_buffer_ckp_metadata_cb(void *context, const sl_ckp_t *ckp,
-                                 const void **result);
-
+                                 const void **result)
+{
+    return 0;
+}

@@ -15,7 +15,7 @@ endif
 LOG_DRIVER = env CK_TAP_LOG_FILE_NAME='-' AM_TAP_AWK='$(AWK)' \
              '$(SHELL)' '$(top_srcdir)/build-aux/tap-driver.sh'
 
-TESTS = check_streamlike_file check_circbuf $(HTTP_TEST)
+TESTS = check_streamlike_file check_circbuf check_streamlike_buffer $(HTTP_TEST)
 
 
 AM_CPPFLAGS = -I$(top_srcdir)/src @STREAMLIKE_CPPFLAGS@
@@ -30,6 +30,8 @@ check_streamlike_file_SOURCES = check_streamlike_file.c
 check_streamlike_http_SOURCES = $(HTTP_SOURCES)
 check_streamlike_http_CFLAGS  = $(CFLAGS) $(HTTP_CFLAGS)
 check_streamlike_http_LDADD   = $(LDADD) $(HTTP_LIBS)
+
+check_streamlike_buffer_SOURCES = check_streamlike_buffer.c
 
 check_circbuf_SOURCES = check_circbuf.c
 
