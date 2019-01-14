@@ -168,18 +168,43 @@ START_TEST(test_file_seek)
 
     ck_assert_uint_gt(TEST_DATA_LENGTH, chunk_len);
 
-    for (off_t off = 0; off < TEST_DATA_LENGTH - chunk_len; off += 5110)
+    for (off_t off = 0; off <= TEST_DATA_LENGTH - chunk_len; off += 501)
     {
         ck_assert_uint_eq(seek_and_read(buffer_stream, off, buffer, chunk_len),
-                        off + chunk_len);
+                          chunk_len);
         ck_assert_mem_eq(test_data + off, buffer, chunk_len);
+        ck_assert_int_eq(sl_eof(buffer_stream), 0);
     }
-}
-END_TEST
 
-START_TEST(test_file_seek_after_eof)
-{
+    for (off_t off = TEST_DATA_LENGTH - chunk_len + 1;
+         off < TEST_DATA_LENGTH;
+         off++)
+    {
+        ck_assert_uint_eq(seek_and_read(buffer_stream, off, buffer, chunk_len),
+                          TEST_DATA_LENGTH - off);
+        ck_assert_mem_eq(test_data + off, buffer, TEST_DATA_LENGTH - off);
+        ck_assert_int_eq(sl_eof(buffer_stream), 1);
+    }
 
+    /* Go backwards. */
+
+    for (off_t off = TEST_DATA_LENGTH;
+         off > TEST_DATA_LENGTH - chunk_len;
+         off--)
+    {
+        ck_assert_uint_eq(seek_and_read(buffer_stream, off, buffer, chunk_len),
+                          TEST_DATA_LENGTH - off);
+        ck_assert_mem_eq(test_data + off, buffer, TEST_DATA_LENGTH - off);
+        ck_assert_int_eq(sl_eof(buffer_stream), 1);
+    }
+
+    for (off_t off = TEST_DATA_LENGTH - chunk_len; off >= 0; off -= 501)
+    {
+        ck_assert_uint_eq(seek_and_read(buffer_stream, off, buffer, chunk_len),
+                          chunk_len);
+        ck_assert_mem_eq(test_data + off, buffer, chunk_len);
+        ck_assert_int_eq(sl_eof(buffer_stream), 0);
+    }
 }
 END_TEST
 
