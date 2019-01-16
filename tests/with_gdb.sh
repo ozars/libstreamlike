@@ -34,8 +34,8 @@ set environment CK_LOG_FILE_NAME=-
 set environment CK_TAP_LOG_FILE_NAME=-
 EOT
 
-for i in ${@:2}; do
-  echo "break $i" >> "$tmpfile"
+for i in "${@:2}"; do
+  echo "$i" >> "$tmpfile"
 done
 
 CK_INCLUDE_TAGS=NONE make check

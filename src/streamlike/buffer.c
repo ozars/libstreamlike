@@ -81,6 +81,7 @@ void* fill_buffer(void *arg)
             context->seek_requested = 0;
 
             /* Signal the consumer who requested seek. */
+            SL_BUFFER_LOG("Signaling consumer...");
             pthread_cond_signal(context->seek_cond);
 
             /* UNLOCK SEEK OPERATONS */
@@ -94,7 +95,7 @@ void* fill_buffer(void *arg)
         written = circbuf_write2(context->cbuf, filler_cb,
                                  context->inner_stream,
                                  context->step_size);
-        SL_BUFFER_LOG("Wrote to circbuf.");
+        SL_BUFFER_LOG("Wrote %zd bytes to circbuf.", written);
 
         /* If there is an error or eof is reached... */
         if (written < context->step_size) {
@@ -105,6 +106,7 @@ void* fill_buffer(void *arg)
             /* Signal consumer that writing is closed so that reading does not
              * block at the end of file.. */
             circbuf_close_write(context->cbuf);
+            SL_BUFFER_LOG("Closed writing.");
 
             /* If buffer not closed, wait until it is closed by either
              * sl_buffer_destroy() or sl_buffer_seek_cb(). */
@@ -454,10 +456,13 @@ int sl_buffer_seek_cb(void *context, off_t offset, int whence)
     circbuf_close_read(stream->cbuf);
 
     /* Signal producer if it's waiting on EOF. */
+    SL_BUFFER_LOG("Signaling producer...");
     pthread_cond_signal(stream->seek_cond);
 
     /* Wait for seeking to be completed. */
+    SL_BUFFER_LOG("Waiting for seeking...");
     pthread_cond_wait(stream->seek_cond, stream->seek_lock);
+    SL_BUFFER_LOG("Done waiting for seeking...");
     pthread_mutex_unlock(stream->seek_lock);
 
     /* If successful, update offset, clear eof and return success. */
@@ -466,6 +471,8 @@ int sl_buffer_seek_cb(void *context, off_t offset, int whence)
         stream->eof = 0;
         return 0;
     }
+
+    SL_ASSERT(stream->seek_result == 0);
 
     /* Else return error code. */
     return stream->seek_result;

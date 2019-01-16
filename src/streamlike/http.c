@@ -254,7 +254,7 @@ size_t sl_http_header_cb_(void *curlbuf, size_t nitems, size_t curlbuf_size,
         /* If length isn't known... */
         if (http->http_len < 0) {
 
-            /* If the content-range is found and status is 406 Partial Content,
+            /* If the content-range is found and status is 206 Partial Content,
              * read total length of stream. */
             if (http->http_status == 206
                     && header_type == HEADER_CONTENT_RANGE) {
@@ -456,6 +456,7 @@ int sl_http_destroy(streamlike_t *stream)
 size_t sl_http_read_cb(void *context, void *buffer, size_t len)
 {
     sl_http_t *http = context;
+    CURLMcode curl_mret;
     http->outbuf = buffer;
     http->outbuf_off = 0;
     http->outbuf_size = len;
@@ -469,7 +470,29 @@ size_t sl_http_read_cb(void *context, void *buffer, size_t len)
         if (curl_multi_wait(http->curlm, NULL, 0, 0, NULL) != CURLM_OK) {
             return http->outbuf_off;
         }
-        if (curl_multi_perform(http->curlm, &count) != CURLM_OK || !count) {
+        curl_mret = curl_multi_perform(http->curlm, &count);
+        if (curl_mret != CURLM_OK || !count) {
+            #ifdef SL_DEBUG
+            if (curl_mret != CURLM_OK) {
+                SL_HTTP_LOG("cURL multi call returned error: %s (%d)",
+                            curl_multi_strerror(curl_mret), curl_mret);
+            }
+            SL_HTTP_LOG("Checking handle result...");
+            CURLMsg *result;
+            int msgs;
+            while (result = curl_multi_info_read(http->curlm, &msgs))
+            {
+                SL_LOG("MSGS: %d", msgs);
+                if (result->msg == CURLMSG_DONE) {
+                    SL_HTTP_LOG("cURL call returned: %s (%d)",
+                                curl_easy_strerror(result->data.result),
+                                result->data.result);
+                } else {
+                    SL_HTTP_LOG("Unknown message...");
+                }
+            }
+            SL_LOG("MSGS: %d", msgs);
+            #endif
             if (!count) {
                 sl_http_set_state_(http, SL_HTTP_READY);
             }
