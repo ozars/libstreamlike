@@ -2,7 +2,7 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ([2.69])
-AC_INIT([libstreamlike], [1.0.0], [omer AT utdallas DOT edu])
+AC_INIT([libstreamlike], [1.0.0-dev], [omer AT utdallas DOT edu])
 AC_LANG([C])
 AC_CONFIG_SRCDIR([src/streamlike.h])
 AC_CONFIG_HEADERS([config.h])
