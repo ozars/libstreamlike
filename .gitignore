@@ -2,6 +2,7 @@
 /doc/doxygen/
 /build/
 /tmp/
+/streamlike.pc
 
 # Testing Artifacts
 /tests/check_*

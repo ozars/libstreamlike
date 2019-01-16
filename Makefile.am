@@ -4,8 +4,11 @@ ACLOCAL_AMFLAGS = -I m4
 doc/doxygen:
 	make -C doc doxygen
 
-if !ENABLE_TESTS
+# Configuration for pkg-config
+pcdatadir = $(libdir)/pkgconfig
+pcdata_DATA = streamlike.pc
 
+if !ENABLE_TESTS
 CHECK_ERROR_MSG="\
 ===========================================================================\\n\
 Tests are disabled. Run configure with --enable-tests flag to enable them.\\n\

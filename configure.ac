@@ -20,6 +20,10 @@ AM_PROG_AR
 AC_PROG_LIBTOOL
 AC_PROG_AWK
 
+# pkg-config
+PKG_PROG_PKG_CONFIG
+PKG_INSTALLDIR
+
 # Initialize libtool to build .la files
 LT_INIT
 
@@ -73,7 +77,9 @@ AC_SYS_LARGEFILE
 AC_CONFIG_FILES([Makefile
                  doc/Makefile
                  src/Makefile
-                 tests/Makefile])
+                 tests/Makefile
+                 streamlike.pc
+])
 AC_OUTPUT
 
 AC_MSG_NOTICE([

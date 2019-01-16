@@ -1,0 +1,12 @@
+prefix=@prefix@
+exec_prefix=@exec_prefix@
+libdir=@libdir@
+includedir=@includedir@
+
+Name: streamlike
+Description: Provides streamlike interface for files, URLs and other user defined stream structures.
+URL: https://github.com/ozars/libstreamlike
+Version: @VERSION@
+Requires: libcurl
+Libs: -L${libdir} -lstreamlike
+Cflags: -I${includedir}
