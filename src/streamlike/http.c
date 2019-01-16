@@ -171,8 +171,12 @@ size_t sl_http_header_cb_(void *curlbuf, size_t nitems, size_t curlbuf_size,
     }
 
     /* TODO: Is this scanf secure for a non-NULL terminated line? */
-    if (sscanf(line, "HTTP/%*s %d ", &http->http_status) == 1) {
+    if (sscanf(line, "HTTP/%*3s %d ", &http->http_status) == 1) {
         SL_HTTP_LOG("HTTP status read: %d", http->http_status);
+        if (http->http_status == 416) {
+            /* Range not satisfiable. */
+            return 0;
+        }
         return curlbuf_size;
     }
 
@@ -300,6 +304,7 @@ void sl_cancel_transfer_(sl_http_t *http)
     SL_HTTP_LOG("Trying to cancel...");
     if (http->state == SL_HTTP_READY) {
         SL_HTTP_LOG("No need to cancel.");
+        http->curlbuf_off = 0;
         return;
     }
     if (http->state == SL_HTTP_PAUSED) {
@@ -517,6 +522,10 @@ int sl_http_seek_cb(void *context, off_t offset, int whence)
     /* TODO: Check if stream supports seeking. */
     char range_str[128];
 
+    if (offset < 0 && whence == SL_SEEK_SET) {
+        return -1;
+    }
+
     snprintf(range_str, sizeof(range_str), "%jd-", (intmax_t)offset);
     SL_HTTP_LOG("Requesting range '%s'", range_str);
 
@@ -525,6 +534,9 @@ int sl_http_seek_cb(void *context, off_t offset, int whence)
     curl_easy_setopt(http->curl, CURLOPT_RANGE, range_str);
 
     http->http_off = offset;
+    http->curlbuf_off = 0;
+    curl_multi_remove_handle(http->curlm, http->curl);
+    curl_multi_add_handle(http->curlm, http->curl);
 
     return 0;
 }
