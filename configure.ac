@@ -13,10 +13,9 @@ AC_REQUIRE_AUX_FILE([tap-driver.sh])
 AM_INIT_AUTOMAKE([foreign -Wall -Werror subdir-objects])
 
 # Checks for programs.
+AM_PROG_AR
 AC_PROG_CC
 AC_PROG_INSTALL
-AC_PROG_MAKE_SET
-AM_PROG_AR
 AC_PROG_LIBTOOL
 AC_PROG_AWK
 
@@ -28,7 +27,6 @@ PKG_INSTALLDIR
 LT_INIT
 
 # Checks for libraries and arguments
-
 AC_ARG_ENABLE([debug], AC_HELP_STRING([--enable-debug], [enable debug flag]))
 if test "x$enable_debug" != "xyes"; then enable_debug="no"; fi
 AM_CONDITIONAL([ENABLE_DEBUG], [test x$enable_debug = xyes])
@@ -59,19 +57,9 @@ AM_COND_IF([ENABLE_HTTP], [
     PKG_CHECK_MODULES([CURL], [libcurl >= 7.47.0])
 ])
 
-# Checks for header files.
-AC_CHECK_HEADERS([stdlib.h])
-
 # Checks for typedefs, structures, and compiler characteristics.
-AC_C_INLINE
 AC_TYPE_OFF_T
 AC_TYPE_SIZE_T
-
-# Checks for library functions.
-AC_FUNC_ERROR_AT_LINE
-AC_FUNC_FSEEKO
-AC_FUNC_MALLOC
-
 AC_SYS_LARGEFILE
 
 AC_CONFIG_FILES([Makefile

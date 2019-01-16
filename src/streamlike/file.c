@@ -92,13 +92,13 @@ int sl_fseek_cb(void *context, off_t offset, int whence)
     switch(whence)
     {
         case SL_SEEK_SET:
-            return fseeko((FILE*)context, offset, SEEK_SET);
+            return fseek((FILE*)context, offset, SEEK_SET);
         case SL_SEEK_CUR:
-            return fseeko((FILE*)context, offset, SEEK_CUR);
+            return fseek((FILE*)context, offset, SEEK_CUR);
         case SL_SEEK_END:
-            return fseeko((FILE*)context, offset, SEEK_END);
+            return fseek((FILE*)context, offset, SEEK_END);
     }
-    return fseeko((FILE*)context, offset, whence);
+    return fseek((FILE*)context, offset, whence);
 }
 
 off_t sl_ftell_cb(void *context)
