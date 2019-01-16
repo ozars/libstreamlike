@@ -5,6 +5,7 @@
 
 #include "streamlike/buffer.h"
 #include "streamlike/file.h"
+#include "streamlike/http.h"
 #include "util/test_server.h"
 #include "util/util.h"
 
@@ -52,14 +53,41 @@ void setup_file()
 
     buffer_stream = sl_buffer_create2(file_stream, TEST_BUFFER_SIZE,
                                       TEST_BUFFER_STEP_SIZE);
+    ck_assert_ptr_nonnull(buffer_stream);
 }
 
 void teardown_file()
 {
-    sl_fclose(file_stream);
-    file_stream = NULL;
+    ck_assert_int_eq(sl_buffer_destroy(buffer_stream), 0);
+    buffer_stream = NULL;
 
-    sl_buffer_destroy(buffer_stream);
+    ck_assert_int_eq(sl_fclose(file_stream), 0);
+    file_stream = NULL;
+}
+
+void setup_server()
+{
+    test_server = test_server_run(test_data, TEST_DATA_LENGTH);
+    ck_assert_ptr_nonnull(test_server);
+
+    http_stream = sl_http_create(test_server_address(test_server));
+    ck_assert_ptr_nonnull(http_stream);
+
+    buffer_stream = sl_buffer_create2(http_stream, TEST_BUFFER_SIZE,
+                                      TEST_BUFFER_STEP_SIZE);
+    ck_assert_ptr_nonnull(buffer_stream);
+}
+
+void teardown_server()
+{
+    ck_assert_int_eq(sl_buffer_destroy(buffer_stream), 0);
+    buffer_stream = NULL;
+
+    ck_assert_int_eq(sl_http_destroy(http_stream), 0);
+    http_stream = NULL;
+
+    test_server_stop(test_server);
+    test_server = NULL;
 }
 
 START_TEST(test_file_content_verification)
@@ -73,7 +101,18 @@ START_TEST(test_file_content_verification)
 }
 END_TEST
 
-START_TEST(test_file_read_whole)
+START_TEST(test_http_content_verification)
+{
+    char *buffer = malloc(TEST_DATA_LENGTH);
+
+    ck_assert_ptr_nonnull(buffer);
+    ck_assert_int_eq(sl_read(http_stream, buffer, TEST_DATA_LENGTH),
+                     TEST_DATA_LENGTH);
+    ck_assert_mem_eq(buffer, test_data, TEST_DATA_LENGTH);
+}
+END_TEST
+
+START_TEST(test_read_whole)
 {
     char *buffer = malloc(TEST_DATA_LENGTH);
 
@@ -93,7 +132,7 @@ START_TEST(test_file_read_whole)
 }
 END_TEST
 
-START_TEST(test_file_read_chunks)
+START_TEST(test_read_chunks)
 {
     const size_t chunk_len = TEST_DATA_LENGTH / 1024;
     size_t read = 0;
@@ -121,7 +160,7 @@ START_TEST(test_file_read_chunks)
 }
 END_TEST
 
-START_TEST(test_file_read_uneven_chunks)
+START_TEST(test_read_uneven_chunks)
 {
     const size_t chunk_len = TEST_DATA_LENGTH / 1023;
     size_t read = 0;
@@ -146,6 +185,8 @@ START_TEST(test_file_read_uneven_chunks)
         ck_assert_int_eq(sl_tell(buffer_stream), read + last_read);
         read += last_read;
     }
+    ck_assert_int_eq(sl_read(buffer_stream, buffer, chunk_len), 0);
+    ck_assert_int_eq(sl_eof(buffer_stream), 1);
 }
 END_TEST
 
@@ -157,7 +198,7 @@ size_t seek_and_read(streamlike_t* buffer_stream, off_t off, char *buffer, size_
     return sl_read(buffer_stream, buffer, len);
 }
 
-START_TEST(test_file_seek)
+START_TEST(test_seek)
 {
     const size_t chunk_len = TEST_DATA_LENGTH / 1024;
     char *buffer = malloc(chunk_len);
@@ -205,6 +246,38 @@ START_TEST(test_file_seek)
         ck_assert_mem_eq(test_data + off, buffer, chunk_len);
         ck_assert_int_eq(sl_eof(buffer_stream), 0);
     }
+
+    /* Beyond EOF. */
+
+    ck_assert_uint_eq(seek_and_read(buffer_stream, TEST_DATA_LENGTH + 500,
+                                    buffer, chunk_len), 0);
+    ck_assert_int_eq(sl_eof(buffer_stream), 1);
+
+    /* Go beginning. */
+
+    ck_assert_uint_eq(sl_seek(buffer_stream, 0, SL_SEEK_SET), 0);
+    ck_assert_int_eq(sl_eof(buffer_stream), 0);
+
+    size_t read = 0;
+
+    while (read < TEST_DATA_LENGTH) {
+        size_t last_read;
+        ck_assert_int_eq(sl_tell(buffer_stream), read);
+
+        last_read = sl_read(buffer_stream, buffer, chunk_len);
+
+        ck_assert_msg(last_read == chunk_len
+                        || read + last_read == TEST_DATA_LENGTH,
+                      "Reading the chunk of size %zd failed at offset %zd."
+                      " Last read: %zd.", chunk_len, read, last_read);
+
+        ck_assert_mem_eq(buffer, test_data + read, last_read);
+
+        ck_assert_int_eq(sl_tell(buffer_stream), read + last_read);
+        read += last_read;
+    }
+    ck_assert_int_eq(sl_read(buffer_stream, buffer, chunk_len), 0);
+    ck_assert_int_eq(sl_eof(buffer_stream), 1);
 }
 END_TEST
 
@@ -218,12 +291,20 @@ Suite* streamlike_buffer_suite()
     tc = tcase_create("File");
     tcase_add_checked_fixture(tc, setup_file, teardown_file);
     tcase_add_test(tc, test_file_content_verification);
-    tcase_add_test(tc, test_file_read_whole);
-    tcase_add_test(tc, test_file_read_chunks);
-    tcase_add_test(tc, test_file_read_uneven_chunks);
-    tcase_add_test(tc, test_file_seek);
+    tcase_add_test(tc, test_read_whole);
+    tcase_add_test(tc, test_read_chunks);
+    tcase_add_test(tc, test_read_uneven_chunks);
+    tcase_add_test(tc, test_seek);
     suite_add_tcase(s, tc);
 
+    tc = tcase_create("HTTP");
+    tcase_add_checked_fixture(tc, setup_server, teardown_server);
+    tcase_add_test(tc, test_http_content_verification);
+    tcase_add_test(tc, test_read_whole);
+    tcase_add_test(tc, test_read_chunks);
+    tcase_add_test(tc, test_read_uneven_chunks);
+    tcase_add_test(tc, test_seek);
+    suite_add_tcase(s, tc);
     return s;
 }
 

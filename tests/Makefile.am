@@ -31,7 +31,9 @@ check_streamlike_http_SOURCES = $(HTTP_SOURCES)
 check_streamlike_http_CFLAGS  = $(CFLAGS) $(HTTP_CFLAGS)
 check_streamlike_http_LDADD   = $(LDADD) $(HTTP_LIBS)
 
-check_streamlike_buffer_SOURCES = check_streamlike_buffer.c
+check_streamlike_buffer_SOURCES = check_streamlike_buffer.c util/test_server.c
+check_streamlike_buffer_CFLAGS  = $(CFLAGS) @MICROHTTPD_CFLAGS@
+check_streamlike_buffer_LDADD   = $(LDADD) @MICROHTTPD_LIBS@
 
 check_circbuf_SOURCES = check_circbuf.c
 
