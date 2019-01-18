@@ -110,11 +110,12 @@ void* fill_buffer(void *arg)
 
             /* If buffer not closed, wait until it is closed by either
              * sl_buffer_destroy() or sl_buffer_seek_cb(). */
-            if (!circbuf_is_read_closed(context->cbuf)) {
-                SL_BUFFER_LOG("Waiting on condition variable.");
+            SL_BUFFER_LOG("Waiting on condition variable.");
+            while (!circbuf_is_read_closed(context->cbuf)) {
                 pthread_cond_wait(context->seek_cond, context->seek_lock);
-                SL_BUFFER_LOG("Waited on condition variable.");
+                SL_BUFFER_LOG("Woke up...");
             }
+            SL_BUFFER_LOG("Waited on condition variable.");
 
             /* UNLOCK SEEK OPERATONS */
             pthread_mutex_unlock(context->seek_lock);
@@ -461,8 +462,12 @@ int sl_buffer_seek_cb(void *context, off_t offset, int whence)
 
     /* Wait for seeking to be completed. */
     SL_BUFFER_LOG("Waiting for seeking...");
-    pthread_cond_wait(stream->seek_cond, stream->seek_lock);
+    while (stream->seek_requested) {
+        pthread_cond_wait(stream->seek_cond, stream->seek_lock);
+        SL_BUFFER_LOG("Woke up...");
+    }
     SL_BUFFER_LOG("Done waiting for seeking...");
+
     pthread_mutex_unlock(stream->seek_lock);
 
     /* If successful, update offset, clear eof and return success. */
