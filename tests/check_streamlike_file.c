@@ -6,7 +6,8 @@
 
 #define TEMP_FILE_NAME "test.tmp"
 
-streamlike_t *tmp_stream;
+streamlike_t *stream;
+FILE *tmpf;
 
 void verify_stream_integrity(streamlike_t *stream)
 {
@@ -61,23 +62,21 @@ START_TEST(test_create_destroy_failures)
 }
 END_TEST
 
-void setup_tmp_stream()
+void setup_stream()
 {
-    FILE *tmpf;
-
-    ck_assert(tmp_stream == NULL);
+    ck_assert(stream == NULL);
 
     tmpf = tmpfile();
     ck_assert(tmpf);
 
-    tmp_stream = sl_fopen2(tmpf);
-    ck_assert(tmp_stream);
+    stream = sl_fopen2(tmpf);
+    ck_assert(stream);
 }
 
-void teardown_tmp_stream()
+void teardown_stream()
 {
-    ck_assert(sl_fclose(tmp_stream) == 0);
-    tmp_stream = NULL;
+    ck_assert(sl_fclose(stream) == 0);
+    stream = NULL;
 }
 
 START_TEST(test_read_write_seek_length)
@@ -85,28 +84,28 @@ START_TEST(test_read_write_seek_length)
     const char data[] = "\0Test data \0to write\n\r\b\t.\0";
     char buf[sizeof(data)];
 
-    ck_assert(sl_tell(tmp_stream) == 0);
-    ck_assert(sl_write(tmp_stream, data, sizeof(data)) == sizeof(data));
-    ck_assert(sl_tell(tmp_stream) == sizeof(data));
-    ck_assert(sl_flush(tmp_stream) == 0);
+    ck_assert(sl_tell(stream) == 0);
+    ck_assert(sl_write(stream, data, sizeof(data)) == sizeof(data));
+    ck_assert(sl_tell(stream) == sizeof(data));
+    ck_assert(sl_flush(stream) == 0);
 
-    ck_assert(sl_length(tmp_stream) == sizeof(data));
+    ck_assert(sl_length(stream) == sizeof(data));
 
-    ck_assert(sl_seek(tmp_stream, 0, SL_SEEK_SET) == 0);
-    ck_assert(sl_read(tmp_stream, buf, sizeof(data)) == sizeof(data));
+    ck_assert(sl_seek(stream, 0, SL_SEEK_SET) == 0);
+    ck_assert(sl_read(stream, buf, sizeof(data)) == sizeof(data));
     ck_assert(memcmp(data, buf, sizeof(data)) == 0);
-    ck_assert(sl_tell(tmp_stream) == sizeof(data));
+    ck_assert(sl_tell(stream) == sizeof(data));
 
-    ck_assert(sl_length(tmp_stream) == sizeof(data));
+    ck_assert(sl_length(stream) == sizeof(data));
 
-    ck_assert(!sl_eof(tmp_stream));
-    ck_assert(sl_read(tmp_stream, buf, sizeof(data)) == 0);
-    ck_assert(sl_eof(tmp_stream));
+    ck_assert(!sl_eof(stream));
+    ck_assert(sl_read(stream, buf, sizeof(data)) == 0);
+    ck_assert(sl_eof(stream));
 
-    ck_assert(sl_seek(tmp_stream, 0, SL_SEEK_SET) == 0);
-    ck_assert(!sl_eof(tmp_stream));
+    ck_assert(sl_seek(stream, 0, SL_SEEK_SET) == 0);
+    ck_assert(!sl_eof(stream));
 
-    ck_assert(sl_seekable(tmp_stream) == SL_SEEKING_SUPPORTED);
+    ck_assert(sl_seekable(stream) == SL_SEEKING_SUPPORTED);
 }
 END_TEST
 
@@ -126,7 +125,7 @@ Suite* streamlike_file_suite()
     suite_add_tcase(s, tc1);
 
     tc2 = tcase_create("Access/Modify");
-    tcase_add_checked_fixture(tc2, setup_tmp_stream, teardown_tmp_stream);
+    tcase_add_checked_fixture(tc2, setup_stream, teardown_stream);
 
     tcase_add_test(tc2, test_read_write_seek_length);
     suite_add_tcase(s, tc2);
