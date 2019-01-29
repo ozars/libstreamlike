@@ -3,6 +3,7 @@
 #include <check.h>
 
 #include "streamlike/file.h"
+#include "streamlike/test.h"
 
 #define TEMP_FILE_NAME "test.tmp"
 
@@ -133,12 +134,50 @@ Suite* streamlike_file_suite()
     return s;
 }
 
+const char simple_data[] = "Test\0data \0 to read%\n\r\b\t.<>/\\`'\"\0";
+
+SL_TEST_TO_CK_TEST(
+    test_simple_read, sl_test_read_exact,
+    SL_ARGS(stream, simple_data, sizeof(simple_data), sizeof(simple_data))
+);
+SL_TEST_TO_CK_TEST(
+    test_simple_read_eof, sl_test_read_until_eof,
+    SL_ARGS(stream, simple_data, sizeof(simple_data), sizeof(simple_data))
+);
+
+void setup_simple_stream()
+{
+    setup_stream();
+    ck_assert_int_eq(fwrite(simple_data, sizeof(simple_data), 1, tmpf), 1);
+    rewind(tmpf);
+}
+
+void teardown_simple_stream()
+{
+    teardown_stream();
+}
+
+Suite* streamlike_file_sl_suite()
+{
+    Suite *s;
+    TCase *tc;
+
+    s = suite_create("SL File");
+    tc = tcase_create("Simple Read");
+    tcase_add_test(tc, test_simple_read);
+    tcase_add_test(tc, test_simple_read_eof);
+    tcase_add_checked_fixture(tc, setup_simple_stream, teardown_simple_stream);
+    suite_add_tcase(s, tc);
+    return s;
+}
+
 int main(int argc, char **argv)
 {
     SRunner *sr;
     int num_failed;
 
     sr = srunner_create(streamlike_file_suite());
+    srunner_add_suite(sr, streamlike_file_sl_suite());
 
     srunner_run_all(sr, CK_ENV);
 

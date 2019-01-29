@@ -19,7 +19,7 @@ endif
 AM_CPPFLAGS = @STREAMLIKE_CPPFLAGS@
 
 lib_LTLIBRARIES = libstreamlike.la
-libstreamlike_la_SOURCES = streamlike.h \
+libstreamlike_la_SOURCES = streamlike.h streamlike/test.h \
                            streamlike/file.c streamlike/file.h \
                            streamlike/buffer.c streamlike/buffer.h \
                            streamlike/util/circbuf.h streamlike/util/circbuf.c \
@@ -29,4 +29,5 @@ libstreamlike_la_LIBADD = $(HTTP_LIBS)
 nobase_include_HEADERS  = streamlike.h \
                           streamlike/file.h \
                           streamlike/buffer.h \
+                          streamlike/test.h \
                           $(HTTP_H) $(DEBUG_H)
