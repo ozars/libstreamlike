@@ -72,6 +72,13 @@ int sl_fclose(streamlike_t *stream)
     return 0;
 }
 
+int sl_fclose2(streamlike_t *stream)
+{
+    SL_FILE_ASSERT(stream != NULL);
+    free(stream);
+    return 0;
+}
+
 size_t sl_fread_cb(void *context, void *buffer, size_t size)
 {
     return fread(buffer, 1, size, (FILE*)context);

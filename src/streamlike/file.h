@@ -7,6 +7,7 @@
 streamlike_t* sl_fopen(const char *path, const char *mode);
 streamlike_t* sl_fopen2(FILE *file);
 int sl_fclose(streamlike_t *stream);
+int sl_fclose2(streamlike_t *stream);
 
 size_t sl_fread_cb(void *context, void *buffer, size_t size);
 size_t sl_fwrite_cb(void *context, const void *buffer, size_t size);
