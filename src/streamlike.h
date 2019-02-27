@@ -384,8 +384,8 @@ inline size_t sl_read(const streamlike_t *stream, void *buffer, size_t size)
  *
  * \see sl_input_cb_t()
  */
-inline size_t sl_input_t(const streamlike_t *stream, const void **buffer,
-                         size_t size)
+inline size_t sl_input(const streamlike_t *stream, const void **buffer,
+                       size_t size)
 {
     SL_ASSERT(stream);
     SL_ASSERT(stream->input);
