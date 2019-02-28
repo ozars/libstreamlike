@@ -11,8 +11,12 @@ HTTP_LIBS   =
 endif
 
 if ENABLE_CPP_INTERFACE
-CPP_INTERFACE_CPP = streamlike.cpp
-CPP_INTERFACE_HPP = streamlike.hpp
+CPP_INTERFACE_CPP = streamlikexx.cpp streamlike/filexx.cpp streamlike/bufferxx.cpp
+CPP_INTERFACE_HPP = streamlike.hpp streamlike/file.hpp streamlike/buffer.hpp
+if ENABLE_HTTP
+CPP_INTERFACE_CPP += streamlike/httpxx.cpp
+CPP_INTERFACE_HPP += streamlike/http.hpp
+endif
 else
 CPP_INTERFACE_CPP =
 CPP_INTERFACE_HPP =

@@ -1,5 +1,6 @@
 #include "streamlike.h"
 #include "streamlike.hpp"
+#include <stdexcept>
 
 namespace streamlike {
 
@@ -92,6 +93,26 @@ bool Streamlike::hasError() {
 
 bool Streamlike::hasLength() {
     return self->length;
+}
+
+Streamlike::Streamlike(struct streamlike_s *self, c_dtor_callback_type cdtor)
+        : self(self), cdtor(cdtor) {}
+
+Streamlike::Streamlike(Streamlike&& old)
+        : self(old.self), cdtor(old.cdtor) {
+    old.self = nullptr;
+}
+
+Streamlike::~Streamlike() {
+    if (self && cdtor && cdtor(self) != 0) {
+        throw std::runtime_error("Failed destroying streamlike object");
+    }
+}
+
+Streamlike& Streamlike::operator=(Streamlike&& old) {
+    self = old.self;
+    old.self = nullptr;
+    return *this;
 }
 
 }

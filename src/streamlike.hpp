@@ -1,3 +1,6 @@
+#ifndef STREAMLIKE_HPP
+#define STREAMLIKE_HPP
+
 struct streamlike_s;
 
 namespace streamlike {
@@ -30,10 +33,30 @@ class Streamlike {
         bool hasError();
         bool hasLength();
 
+        Streamlike(Streamlike&& old);
+        Streamlike& operator=(Streamlike&& old);
+        ~Streamlike();
+
     protected:
+        using self_type = struct streamlike_s*;
+        /* This is a terrible hack that I use to pass related destroying
+         * callback, since virtual destructor causes issues with object
+         * slicing. This callback is initialized by derived classes. */
+        using c_dtor_callback_type = int (*)(self_type);
+
         Streamlike() = default;
-        ~Streamlike() = default;
-        struct streamlike_s *self;
+        Streamlike(self_type self, c_dtor_callback_type cdtor);
+        Streamlike(Streamlike& copy) = delete;
+        Streamlike& operator=(Streamlike& copy) = delete;
+
+        inline static self_type getSelf(Streamlike& obj) {
+            return obj.self;
+        };
+
+        self_type self;
+        c_dtor_callback_type cdtor;
 };
 
 } // namspace streamlike
+
+#endif /* STREAMLIKE_HPP */
