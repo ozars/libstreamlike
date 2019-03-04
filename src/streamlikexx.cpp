@@ -1,4 +1,6 @@
+extern "C" {
 #include "streamlike.h"
+}
 #include "streamlike.hpp"
 #include <stdexcept>
 

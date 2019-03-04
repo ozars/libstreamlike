@@ -1,4 +1,6 @@
+extern "C" {
 #include "http.h"
+}
 #include "http.hpp"
 #include <stdexcept>
 

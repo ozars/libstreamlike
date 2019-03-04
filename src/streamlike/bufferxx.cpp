@@ -1,4 +1,6 @@
+extern "C" {
 #include "buffer.h"
+}
 #include "buffer.hpp"
 #include <stdexcept>
 

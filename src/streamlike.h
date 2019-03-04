@@ -74,7 +74,7 @@ typedef enum sl_seekable_e
  * This type will never be defined. Callbacks using pointer of this type should
  * cast it back and forth between their internal data structure to use it.
  */
-typedef struct _sl_ckp_opaque_s sl_ckp_t;
+typedef struct sl_ckp_s sl_ckp_t;
 
 /** @} */ // DataStructures
 

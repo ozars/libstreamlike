@@ -1,7 +1,25 @@
 #ifndef STREAMLIKE_HPP
 #define STREAMLIKE_HPP
 
-struct streamlike_s;
+#ifndef STREAMLIKE_H
+/* TODO: This is redundant, find a better way to eliminate this redundancy. */
+extern "C" {
+    typedef enum sl_seekable_e
+    {
+        SL_SEEKING_NOT_SUPPORTED = 0, /**< Seeking isn't supported at all (Value:
+                                        `0`). */
+        SL_SEEKING_SUPPORTED     = 1, /**< Seeking is supported completely (Value:
+                                        `1`). */
+        SL_SEEKING_EMULATED      = 2, /**< Seeking is emulated through reading and
+                                        discarding data read (Value: `2`). */
+        SL_SEEKING_CHECKPOINTS   = 3  /**< Seeking to checkpoints is supported,
+                                        while seeking to other parts is emulated
+                                        (Value: `3`). */
+    } sl_seekable_t;
+    typedef struct streamlike_s streamlike_t;
+    typedef struct sl_ckp_s sl_ckp_t;
+}
+#endif
 
 namespace streamlike {
 
@@ -38,7 +56,7 @@ class Streamlike {
         ~Streamlike();
 
     protected:
-        using self_type = struct streamlike_s*;
+        using self_type = streamlike_t*;
         /* This is a terrible hack that I use to pass related destroying
          * callback, since virtual destructor causes issues with object
          * slicing. This callback is initialized by derived classes. */

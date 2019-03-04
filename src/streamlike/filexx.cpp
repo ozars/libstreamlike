@@ -1,4 +1,6 @@
+extern "C" {
 #include "file.h"
+}
 #include "file.hpp"
 #include <stdexcept>
 
