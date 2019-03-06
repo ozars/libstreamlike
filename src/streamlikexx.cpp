@@ -103,6 +103,7 @@ Streamlike::Streamlike(struct streamlike_s *self, c_dtor_callback_type cdtor)
 Streamlike::Streamlike(Streamlike&& old)
         : self(old.self), cdtor(old.cdtor) {
     old.self = nullptr;
+    old.cdtor = nullptr;
 }
 
 Streamlike::~Streamlike() {
@@ -113,7 +114,9 @@ Streamlike::~Streamlike() {
 
 Streamlike& Streamlike::operator=(Streamlike&& old) {
     self = old.self;
+    cdtor = old.cdtor;
     old.self = nullptr;
+    old.cdtor = nullptr;
     return *this;
 }
 
