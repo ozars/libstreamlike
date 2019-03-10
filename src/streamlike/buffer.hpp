@@ -2,16 +2,64 @@
 #define STREAMLIKE_BUFFER_HPP
 #include "../streamlike.hpp"
 
+#include <utility>
+
 namespace streamlike {
 
+template<class T>
 class StreamlikeBuffer : public Streamlike {
     public:
-        StreamlikeBuffer(Streamlike&& innerStream);
-        StreamlikeBuffer(Streamlike&& innerStream, size_t bufferSize,
-                         size_t stepSize);
+        StreamlikeBuffer(T&& innerStream);
+        StreamlikeBuffer(T&& innerStream, size_t bufferSize, size_t stepSize);
+        StreamlikeBuffer(StreamlikeBuffer&&) = default;
+        StreamlikeBuffer& operator=(StreamlikeBuffer&&) = default;
+        ~StreamlikeBuffer();
+
     private:
-        Streamlike mInnerStream;
+        T mInnerStream;
 };
+
+class StreamlikeBufferImpl {
+    private:
+        using self_type = Streamlike::self_type;
+
+        StreamlikeBufferImpl() = delete;
+        static self_type createSelf(self_type innerSelf);
+        static self_type createSelf(self_type innerSelf, size_t bufferSize,
+                                    size_t stepSize);
+        static void destroySelf(self_type self);
+
+        template<class T>
+        friend class StreamlikeBuffer;
+};
+
+template<class T>
+StreamlikeBuffer<T>::StreamlikeBuffer(T&& innerStream)
+        : Streamlike(StreamlikeBufferImpl::createSelf(getSelf(innerStream))),
+          mInnerStream(std::forward<T>(innerStream)) {}
+
+template<class T>
+StreamlikeBuffer<T>::StreamlikeBuffer(T&& innerStream, size_t bufferSize,
+                                      size_t stepSize)
+        : Streamlike(StreamlikeBufferImpl::createSelf(
+                            getSelf(innerStream), bufferSize, stepSize)),
+          mInnerStream(std::forward<T>(innerStream)) {}
+
+template<class T>
+StreamlikeBuffer<T>::~StreamlikeBuffer() {
+    StreamlikeBufferImpl::destroySelf(self);
+}
+
+template<class T>
+StreamlikeBuffer<T> createStreamlikeBuffer(T&& innerStream) {
+    return { std::forward<T>(innerStream) };
+}
+
+template<class T>
+StreamlikeBuffer<T> createStreamlikeBuffer(T&& innerStream, size_t bufferSize,
+                                           size_t stepSize) {
+    return { std::forward<T>(innerStream, bufferSize, stepSize) };
+}
 
 } // namespace streamlike
 

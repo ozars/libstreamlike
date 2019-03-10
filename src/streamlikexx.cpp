@@ -97,27 +97,17 @@ bool Streamlike::hasLength() {
     return self->length;
 }
 
-Streamlike::Streamlike(struct streamlike_s *self, c_dtor_callback_type cdtor)
-        : self(self), cdtor(cdtor) {}
-
-Streamlike::Streamlike(Streamlike&& old)
-        : self(old.self), cdtor(old.cdtor) {
+Streamlike::Streamlike(Streamlike&& old) {
+    self = old.self;
     old.self = nullptr;
-    old.cdtor = nullptr;
-}
-
-Streamlike::~Streamlike() {
-    if (self && cdtor && cdtor(self) != 0) {
-        throw std::runtime_error("Failed destroying streamlike object");
-    }
 }
 
 Streamlike& Streamlike::operator=(Streamlike&& old) {
     self = old.self;
-    cdtor = old.cdtor;
     old.self = nullptr;
-    old.cdtor = nullptr;
-    return *this;
 }
+
+Streamlike::Streamlike(self_type self)
+    : self(self) {}
 
 }

@@ -12,6 +12,9 @@ class StreamlikeFile : public Streamlike {
         StreamlikeFile(const char *path, const char *mode);
         StreamlikeFile(const std::string& path, const std::string& mode);
         StreamlikeFile(FILE* fp);
+        StreamlikeFile(StreamlikeFile&& old) = default;
+        StreamlikeFile& operator=(StreamlikeFile&&) = default;
+        ~StreamlikeFile();
 };
 
 } // namespace streamlike

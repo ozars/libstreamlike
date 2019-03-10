@@ -2,25 +2,32 @@ extern "C" {
 #include "buffer.h"
 }
 #include "buffer.hpp"
+
 #include <stdexcept>
 
 namespace streamlike {
 
-StreamlikeBuffer::StreamlikeBuffer(Streamlike&& innerStream)
-        : Streamlike(sl_buffer_create(getSelf(innerStream)), sl_buffer_destroy),
-          mInnerStream(std::move(innerStream)) {
+StreamlikeBufferImpl::self_type StreamlikeBufferImpl::createSelf(
+        self_type innerSelf) {
+    auto self = sl_buffer_create(innerSelf);
     if (!self) {
         throw std::runtime_error("Couldn't create buffer stream");
     }
+    return self;
 }
 
-StreamlikeBuffer::StreamlikeBuffer(Streamlike&& innerStream, size_t bufferSize,
-                                   size_t stepSize)
-        : Streamlike(sl_buffer_create2(getSelf(innerStream), bufferSize, stepSize),
-                     sl_buffer_destroy),
-          mInnerStream(std::move(innerStream)) {
+StreamlikeBufferImpl::self_type StreamlikeBufferImpl::createSelf(
+        self_type innerSelf, size_t bufferSize, size_t stepSize) {
+    auto self = sl_buffer_create2(innerSelf, bufferSize, stepSize);
     if (!self) {
         throw std::runtime_error("Couldn't create buffer stream");
+    }
+    return self;
+}
+
+void StreamlikeBufferImpl::destroySelf(self_type self) {
+    if (self) {
+        sl_buffer_destroy(self);
     }
 }
 

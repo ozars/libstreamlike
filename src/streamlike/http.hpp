@@ -11,6 +11,9 @@ class StreamlikeHttp : public Streamlike {
     public:
         StreamlikeHttp(const char *url);
         StreamlikeHttp(const std::string& url);
+        StreamlikeHttp(StreamlikeHttp&&) = default;
+        StreamlikeHttp& operator=(StreamlikeHttp&&) = default;
+        ~StreamlikeHttp();
 };
 
 } // namespace streamlike
