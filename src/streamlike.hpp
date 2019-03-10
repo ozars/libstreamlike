@@ -32,26 +32,26 @@ class Streamlike {
         size_t write(const void *buffer, size_t size);
         int flush();
         int seek(off_t offset, int whence);
-        off_t tell();
-        int eof();
-        int error();
-        off_t length();
+        off_t tell() const;
+        int eof() const;
+        int error() const;
+        off_t length() const;
 
-        sl_seekable_t seekable();
-        int ckp_count();
-        const sl_ckp_t* ckp(int idx);
-        off_t ckp_offset(const sl_ckp_t* ckp);
-        size_t ckp_metadata(const sl_ckp_t* ckp, const void** result);
+        sl_seekable_t seekable() const;
+        int ckp_count() const;
+        const sl_ckp_t* ckp(int idx) const;
+        off_t ckp_offset(const sl_ckp_t* ckp) const;
+        size_t ckp_metadata(const sl_ckp_t* ckp, const void** result) const;
 
-        bool hasRead();
-        bool hasInput();
-        bool hasWrite();
-        bool hasFlush();
-        bool hasSeek();
-        bool hasTell();
-        bool hasEof();
-        bool hasError();
-        bool hasLength();
+        bool hasRead() const;
+        bool hasInput() const;
+        bool hasWrite() const;
+        bool hasFlush() const;
+        bool hasSeek() const;
+        bool hasTell() const;
+        bool hasEof() const;
+        bool hasError() const;
+        bool hasLength() const;
 
         Streamlike(Streamlike&& old);
         Streamlike& operator=(Streamlike&& old);
