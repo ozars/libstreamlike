@@ -28,6 +28,7 @@ typedef struct sl_buffer_s
     streamlike_t* inner_stream;
     circbuf_t* cbuf;
     pthread_t* filler;
+    int filler_started;
     off_t pos;
     size_t step_size;
     /* TODO: Seperate eof from failure. */
@@ -53,6 +54,11 @@ void* fill_buffer(void *arg)
     size_t written;
 
     SL_BUFFER_LOG("Started.");
+
+    /* Seeking should be done by producer unless it hasn't started yet. */
+    pthread_mutex_lock(context->seek_lock);
+    context->filler_started = 1;
+    pthread_mutex_unlock(context->seek_lock);
 
     /* Loop until read is closed and there is no outstanding seek request. */
     while (!circbuf_is_read_closed(context->cbuf)
@@ -203,11 +209,12 @@ streamlike_t* sl_buffer_create2(streamlike_t* inner_stream, size_t buffer_size,
         goto fail;
     }
 
-    context->inner_stream = inner_stream;
-    context->cbuf         = cbuf;
-    context->filler       = NULL;
-    context->pos          = 0;
-    context->step_size    = step_size;
+    context->inner_stream   = inner_stream;
+    context->cbuf           = cbuf;
+    context->filler         = NULL;
+    context->filler_started = 0;
+    context->pos            = 0;
+    context->step_size      = step_size;
 
     context->eof = 0;
 
@@ -448,25 +455,31 @@ int sl_buffer_seek_cb(void *context, off_t offset, int whence)
 
     pthread_mutex_lock(stream->seek_lock);
 
-    /* Set seek request flag. */
-    stream->seek_requested = 1;
+    if (stream->filler_started) {
+        /* Set seek request flag. */
+        stream->seek_requested = 1;
 
-    /* Signal that reading is closed, so that writing to circular buffer ceases
-     * blocking if it is doing so. Circbuf will be already reset after seeking
-     * is done in fill_buffer(). */
-    circbuf_close_read(stream->cbuf);
+        /* Signal that reading is closed, so that writing to circular buffer
+         * ceases blocking if it is doing so. Circbuf will be already reset
+         * after seeking is done in fill_buffer(). */
+        circbuf_close_read(stream->cbuf);
 
-    /* Signal producer if it's waiting on EOF. */
-    SL_BUFFER_LOG("Signaling producer...");
-    pthread_cond_signal(stream->seek_cond);
+        /* Signal producer if it's waiting on EOF. */
+        SL_BUFFER_LOG("Signaling producer...");
+        pthread_cond_signal(stream->seek_cond);
 
-    /* Wait for seeking to be completed. */
-    SL_BUFFER_LOG("Waiting for seeking...");
-    while (stream->seek_requested) {
-        pthread_cond_wait(stream->seek_cond, stream->seek_lock);
-        SL_BUFFER_LOG("Woke up...");
+        /* Wait for seeking to be completed. */
+        SL_BUFFER_LOG("Waiting for seeking...");
+        while (stream->seek_requested) {
+            pthread_cond_wait(stream->seek_cond, stream->seek_lock);
+            SL_BUFFER_LOG("Woke up...");
+        }
+        SL_BUFFER_LOG("Done waiting for seeking...");
+    } else {
+        /* Producer has not started yet. So, consumer can seek. */
+        stream->seek_result = sl_seek(stream->inner_stream, stream->seek_off,
+                                      stream->seek_whence);
     }
-    SL_BUFFER_LOG("Done waiting for seeking...");
 
     pthread_mutex_unlock(stream->seek_lock);
 
