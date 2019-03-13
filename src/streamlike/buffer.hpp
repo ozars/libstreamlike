@@ -13,6 +13,7 @@ class StreamlikeBuffer : public Streamlike {
         StreamlikeBuffer(T&& innerStream, size_t bufferSize, size_t stepSize);
         StreamlikeBuffer(StreamlikeBuffer&&) = default;
         StreamlikeBuffer& operator=(StreamlikeBuffer&&) = default;
+        void startReadingThread();
         ~StreamlikeBuffer();
 
     private:
@@ -28,6 +29,7 @@ class StreamlikeBufferImpl {
         static self_type createSelf(self_type innerSelf, size_t bufferSize,
                                     size_t stepSize);
         static void destroySelf(self_type self);
+        static void startReadingThread(self_type self);
 
         template<class T>
         friend class StreamlikeBuffer;
@@ -59,6 +61,11 @@ template<class T>
 StreamlikeBuffer<T> createStreamlikeBuffer(T&& innerStream, size_t bufferSize,
                                            size_t stepSize) {
     return { std::forward<T>(innerStream, bufferSize, stepSize) };
+}
+
+template<class T>
+void StreamlikeBuffer<T>::startReadingThread() {
+    StreamlikeBufferImpl::startReadingThread(self);
 }
 
 } // namespace streamlike

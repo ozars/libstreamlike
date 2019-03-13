@@ -31,4 +31,10 @@ void StreamlikeBufferImpl::destroySelf(self_type self) {
     }
 }
 
+void StreamlikeBufferImpl::startReadingThread(self_type self) {
+    if (sl_buffer_threaded_fill_buffer(self) != 0) {
+        throw std::runtime_error("Error while starting buffer thread");
+    }
+}
+
 } // namespace streamlike
