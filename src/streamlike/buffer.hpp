@@ -15,9 +15,11 @@ class StreamlikeBuffer : public Streamlike {
         StreamlikeBuffer& operator=(StreamlikeBuffer&&) = default;
         void startReadingThread();
         ~StreamlikeBuffer();
+        size_t read(void *buffer, size_t size);
 
     private:
         T mInnerStream;
+        bool mThreadStarted;
 };
 
 class StreamlikeBufferImpl {
@@ -38,14 +40,14 @@ class StreamlikeBufferImpl {
 template<class T>
 StreamlikeBuffer<T>::StreamlikeBuffer(T&& innerStream)
         : Streamlike(StreamlikeBufferImpl::createSelf(getSelf(innerStream))),
-          mInnerStream(std::forward<T>(innerStream)) {}
+          mInnerStream(std::forward<T>(innerStream)), mThreadStarted() {}
 
 template<class T>
 StreamlikeBuffer<T>::StreamlikeBuffer(T&& innerStream, size_t bufferSize,
                                       size_t stepSize)
         : Streamlike(StreamlikeBufferImpl::createSelf(
                             getSelf(innerStream), bufferSize, stepSize)),
-          mInnerStream(std::forward<T>(innerStream)) {}
+          mInnerStream(std::forward<T>(innerStream)), mThreadStarted() {}
 
 template<class T>
 StreamlikeBuffer<T>::~StreamlikeBuffer() {
@@ -66,6 +68,15 @@ StreamlikeBuffer<T> createStreamlikeBuffer(T&& innerStream, size_t bufferSize,
 template<class T>
 void StreamlikeBuffer<T>::startReadingThread() {
     StreamlikeBufferImpl::startReadingThread(self);
+    mThreadStarted = true;
+}
+
+template<class T>
+size_t StreamlikeBuffer<T>:: read(void *buffer, size_t size) {
+    if (!mThreadStarted) {
+        startReadingThread();
+    }
+    return Streamlike::read(buffer, size);
 }
 
 } // namespace streamlike
